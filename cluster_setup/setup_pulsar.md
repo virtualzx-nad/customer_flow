@@ -46,13 +46,13 @@ OpenJDK Runtime Environment (build 1.8.0_222-b10)
 OpenJDK 64-Bit Server VM (build 25.222-b10, mixed mode)
 
 
-**Increase Java heap size**
+**Set Java heap size**
 
-Here we increase the max heap size in Java to 800M
+Here we set the max heap size in Java to 800M to accomodate a t2.micro instance
 ```
 echo 'export _JAVA_OPTIONS="-Xms400m -Xmx800m"' >> ~/.bashrc
 ```
-*Note that this is setup for t2.micro and should be increase for larger instance types!!!*
+*Note that this should be increase for larger instance types!!!*
 
 **Install ZooKeeper**
 
@@ -79,8 +79,8 @@ Add the node IP to the config file and set the path to the data directory
 
 ```bash
 cp apache-zookeeper-3.5.5-bin/conf/zoo_sample.cfg apache-zookeeper-3.5.5-bin/conf/zoo.cfg
-echo 'server.1=10.0.0.4:2888:3888' >> apache-zookeeper-3.5.5-bin/conf/zoo.cfg
-sed -i 's/dataDir.*/dataDir=\/home\/ec2-user\/data\/zookeeper/g' apache-zookeeper-3.5.5-bin/conf/zoo.cfg
+echo 'server.1=10.0.0.4:2888:3888' >> /home/ec2-user/apache-zookeeper-3.5.5-bin/conf/zoo.cfg
+sed -i 's/dataDir.*/dataDir=\/home\/ec2-user\/data\/zookeeper/g' /home/ec2-user/apache-zookeeper-3.5.5-bin/conf/zoo.cfg
 ```
 
 Setup the `myid` file in the data directory
@@ -88,16 +88,107 @@ Setup the `myid` file in the data directory
 echo 1 > /home/ec2-user/data/zookeeper/myid
 ```
 
+Add these environmental variables in `~/.bashrc`
+
+```
+export ZOOCFGDIR=/home/ec2-user/apache-zookeeper-3.5.5-bin/conf
+export ZOOBINDIR=/home/ec2-user/apache-zookeeper-3.5.5-bin/bin
+```
 **Configure Pulsar for ZooKeeper settings**
 
 ```bash
-sed -i 's/dataDir.*/dataDir=\/home\/ec2-user\/data\/zookeeper/g' apache-pulsar-2.4.1/conf/zookeeper.conf
-echo 'server.1=10.0.0.4:2888:3888' >> apache-pulsar-2.4.1/conf/zookeeper.conf
+sed -i 's/dataDir.*/dataDir=\/home\/ec2-user\/data\/zookeeper/g' /home/ec2-user/apache-pulsar-2.4.1/conf/zookeeper.conf
+echo 'server.1=10.0.0.4:2888:3888' >> /home/ec2-user/apache-pulsar-2.4.1/conf/zookeeper.conf
 ```
 
 **Start ZooKeeper**
 At this point, an image is created. Then the service is started **through pulsar** with 
 
 ```bash
+/home/ec2-user/apache-pulsar-2.4.1/bin/pulsar-daemon start zookeeper
 
+```
+
+*Note to start ZooKeeper as standalone you can do*
+```bash
+bash /home/ec2-user/apache-zookeeper-3.5.5-bin/bin/zkServer.sh  start
+```
+
+Now start the cluster **once**.
+
+```bash
+/home/ec2-user/apache-pulsar-2.4.1/bin/pulsar initialize-cluster-metadata \
+  --cluster insight-XZ-pulsar-cluster \
+  --zookeeper 10.0.0.4:2181 \
+  --configuration-store 10.0.0.4:2181 \
+  --web-service-url http://<public-DNS>:8080 \
+  --web-service-url-tls https://<public-DNS>:8443 \
+  --broker-service-url pulsar://<public-DNS>:6650 \
+  --broker-service-url-tls pulsar+ssl://<public-DNS>:6651
+```
+
+
+
+Setup BookKeeper cluster
+----
+
+**Install BookKeeper**
+```bash
+wget https://archive.apache.org/dist/bookkeeper/bookkeeper-4.8.2/bookkeeper-server-4.8.2-bin.tar.gz
+
+tar -xzf bookkeeper-server-4.8.2-bin.tar.gz
+
+rm bookkeeper-server-4.8.2-bin.tar.gz
+```
+
+**Install Java**
+```bash
+sudo yum install -y java-1.8.0-openjdk
+
+java -version
+```
+
+>openjdk version "1.8.0_222"
+OpenJDK Runtime Environment (build 1.8.0_222-b10)
+OpenJDK 64-Bit Server VM (build 25.222-b10, mixed mode)
+
+```bash
+echo 'export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.222.b10-0.amzn2.0.1.x86_64/jre' >> ~/.bashrc
+
+echo 'export _JAVA_OPTIONS="-Xms400m -Xmx800m"' >> ~/.bashrc
+```
+*Note the heap size should be increased for any instance type larger than t2.micro!!!*
+
+**Configure BookKeeper to find ZooKeeper servers**
+
+This may or may not be needed but i did it anyways
+```bash
+sed -i 's/dataDir.*/dataDir=\/home\/ec2-user\/data\/zookeeper/g' /home/ec2-user/bookkeeper-server-4.8.2/conf/zookeeper.conf
+
+sed -i 's/dataLogDir.*/dataDir=\/home\/ec2-user\/data\/zookeeper\/txlog/g' /home/ec2-user/bookkeeper-server-4.8.2/conf/zookeeper.conf
+```
+
+**Configure Pulsar settings**
+
+In addition to setting up ZooKeeper setting in Pulsar same as last section (not 100% if necessary), configure Pulsar setting for BookKeepers.
+```bash
+sed -i 's/zkServers.*/zkServers=10.0.0.4:2181/g' /home/ec2-user/apache-pulsar-2.4.1/conf/bookkeeper.conf
+```
+
+Setup Pulsar Broker
+----
+
+
+Set the broker configuration file (`/home/ec2-user/apache-pulsar-2.4.1/conf/broker.conf`) to include the following settings
+
+```
+zookeeperServers=10.0.0.4:2181
+configurationStoreServers=10.0.0.4:2181
+clusterName=insight-XZ-pulsar-cluster
+```
+
+Then start the Pulsar broker
+
+```bash
+/home/ec2-user/apache-pulsar-2.4.1/bin/pulsar-daemon start broker
 ```
