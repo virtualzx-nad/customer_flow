@@ -1,12 +1,13 @@
-# live_features
-A live-updating pipeline that computes a dynamic list of features to be used in ML models.   
+# living_pipeline
+A live-updating pipeline that can be adapted online by utilizing data queues and a dynamic list of transformations.
 
 ## Functionalities
 
-* A pipeline that, parallel to the data storage process, dynamically compute a list of features as data stream in.
+* A pipeline that dynamically process a list of transformations as data stream in.
 * Up-to-date features are accessible real time for on-line predictions etc.
-* Does not involve query to the main data store to alleviate burden on the main databases.
-* The list of features can be changed and the pipeline should properly recompute the features as needed.  Some reasonable delay is allowed when feature list is changed.
+* No need to query the main data store, in order to alleviate burden on the main databases.
+* The list of transformations (aggregations, flags, filters etc) can be changed and the pipeline
+should properly recompute the features as needed.  Some reasonable delay is allowed when feature list is changed.
 
 ## Datasets
 
