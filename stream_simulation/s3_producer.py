@@ -14,21 +14,24 @@ from schema_model import model_class_factory
 
 
 def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test',
-                 max_lines=-1):
+                 max_records=-1):
     Model = model_class_factory(**schema)
     client = pulsar.Client(broker)
     producer = client.create_producer(topic, schema=pulsar.schema.AvroSchema(Model))
     i0 = 0
     t0 = time.time()
+    data = None
     for i, line in enumerate(smart_open.open(s3object)):
-        if i == max_lines:
+        if i == max_records:
             break
         t = time.time()
         if t > t0 + 1:
             print("Processing speed: %.2f records/s" % ((i-i0) / (t-t0)))
             t0 = t
             i0 = i
-        producer.send(Model.from_dict(yaml.safe_load(line)))
+        data = yaml.safe_load(line)
+        producer.send(Model.from_dict(data))
+    print('Last record: ', data)
     client.close()
 
 if __name__ == '__main__':

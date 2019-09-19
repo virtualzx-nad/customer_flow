@@ -1,6 +1,7 @@
 # Consumer test.  Do character counts
 import logging
 import sys
+import time
 
 import pulsar
 import yaml
@@ -23,9 +24,13 @@ client = pulsar.Client('pulsar://localhost:6650')
 
 consumer = client.subscribe('test-topic', subscription_name='consumer1', schema=pulsar.schema.AvroSchema(Model))
 
-while True:
+t0 = time.time()
+data = None
+for i in range(settings['max_records']):
     message = consumer.receive(1000)
     data = message.value()
     # print("Received message for: %s" % data.name)
     consumer.acknowledge(message)
+print('Last message:', data)
+print('Average processing rate: {:.2f}records/s'.format((i+1)/(time.time()-t0)))
 client.close()
