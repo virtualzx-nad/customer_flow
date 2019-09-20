@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """A helper script that reads an object from S3, apply a schema to it
 then supply it to Pulsar as a stream producer.
@@ -8,7 +7,6 @@ import sys
 import time
 
 import smart_open
-from smart_open.smart_open_lib import Uri
 import pulsar
 from schema_model import model_class_factory
 
@@ -18,20 +16,15 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
     Model = model_class_factory(**schema)
     client = pulsar.Client(broker)
     producer = client.create_producer(topic, schema=pulsar.schema.AvroSchema(Model))
-    i0 = 0
     t0 = time.time()
     data = None
     for i, line in enumerate(smart_open.open(s3object)):
         if i == max_records:
             break
-        t = time.time()
-        if t > t0 + 1:
-            print("Processing speed: %.2f records/s" % ((i-i0) / (t-t0)))
-            t0 = t
-            i0 = i
         data = yaml.safe_load(line)
         producer.send(Model.from_dict(data))
-    print('Last record: ', data)
+    logger.info('Last record: %s', str(data))
+    logger.info("Processing speed: %.2f records/s", i / (time.time()-t0))
     client.close()
 
 if __name__ == '__main__':
@@ -43,4 +36,4 @@ if __name__ == '__main__':
         settings = yaml.safe_load(f)
     logging.basicConfig(level=settings.pop('level', 'INFO'))
     process_file(**settings)
-
+    logger = logging.getLogger(__name__)
