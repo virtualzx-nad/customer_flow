@@ -1,14 +1,11 @@
 s3object:  s3://multiple-streams/yelp_dataset/checkin.json
-max_records:   20
+max_records:   -1
 logging_level:  DEBUG
 
 # Store checkin records in a Redis sorted set
-caching_server:  host.docker.internal
+caching_server:  localhost 
 output:   checkin_processed.json
 
 # Save at most this many check-ins to file at a time
 block_size: 10000
-
-# Rate at which to duplicate check-in events.
-duplication_rate:  10
 
