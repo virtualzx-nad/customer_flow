@@ -35,5 +35,6 @@ if __name__ == '__main__':
     with open(sys.argv[1]) as f:
         settings = yaml.safe_load(f)
     logging.basicConfig(level=settings.pop('level', 'INFO'))
-    process_file(**settings)
     logger = logging.getLogger(__name__)
+
+    process_file(**settings)

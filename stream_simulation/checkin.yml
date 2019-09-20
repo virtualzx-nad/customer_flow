@@ -1,0 +1,7 @@
+s3object:  s3://multiple-streams/yelp_dataset/checkin_processed.json
+broker:  pulsar://localhost:6650
+topic:   checkin_yelp
+max_records:   2000
+schema:
+    business_id:  String
+    date:         String
