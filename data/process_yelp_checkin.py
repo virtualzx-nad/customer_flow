@@ -35,11 +35,12 @@ for i, line in enumerate(smart_open.open(settings['s3object'])):
     # that is evenly distributed between integer seconds.
     appendix = hash(business_id) % 1000000 * 0.000001
     dates = data['date'].split(', ')
+    record = {}
     for date_time_str in dates:
         t = datetime.datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S').timestamp()
         t += appendix
-        record = "{'date': '%s', 'business_id': '%s'}" % (date_time_str, business_id)
-        cache.zadd('timestamp', {record: t})
+        record["{'date': '%s', 'business_id': '%s'}" % (date_time_str, business_id)] = t
+    cache.zadd('timestamp', record)
 n = cache.zcard('timestamp')
 logger.info('Processed %d check-in data in %d businesses', n, i)
 logger.info("Processing speed: %.2f entries/s", n / (time.time()-t0))
