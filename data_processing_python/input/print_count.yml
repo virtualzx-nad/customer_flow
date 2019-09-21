@@ -1,0 +1,7 @@
+broker:  pulsar://localhost:6650
+topic:   checkin_moving_count 
+name:    printer
+max_records:   500
+schema:
+    business_id:  String
+    count:        Integer 
