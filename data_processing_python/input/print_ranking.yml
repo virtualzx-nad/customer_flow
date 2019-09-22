@@ -1,0 +1,7 @@
+broker:  pulsar://localhost:6650
+topic:   checkin_ranking
+name:    printer
+max_records:   500
+schema:
+    business_id:  String
+    ranking:      Integer 

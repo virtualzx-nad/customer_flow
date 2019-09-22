@@ -1,0 +1,27 @@
+name:    checkin_ranking
+topic:   checkin_moving_count
+# Pulsar broker
+broker:  pulsar://localhost:6650
+max_records:   -1
+
+# Redis server
+state_server: host.docker.internal
+# db id. which id to use to save the current state
+state_id:     2
+
+key_by:   business_id
+group_by: null
+rank_by:  count
+reverse:  yes
+
+schema:
+    count:         Integer
+    business_id:   String
+
+output_topic:   checkin_ranking
+output_field:   ranking
+output_schema:
+    business_id:   String
+    ranking:       Integer
+
+timeout:  1000
