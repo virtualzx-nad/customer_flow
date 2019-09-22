@@ -1,0 +1,18 @@
+s3object:  s3://multiple-streams/yelp_dataset/photo.json
+broker:  pulsar://localhost:6650
+topic:   photo_yelp_test
+max_records:   200
+schema:
+    review_id:    String
+    business_id:  String
+    user_id:      String
+    date:         String
+    stars:        Integer
+    cool:         Integer
+    useful:       Integer
+    funny:        Integer
+    text:         String
+
+
+            
+

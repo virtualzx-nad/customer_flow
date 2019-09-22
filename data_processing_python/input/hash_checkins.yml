@@ -1,0 +1,11 @@
+broker:  pulsar://localhost:6650
+topic:   checkin_yelp
+max_records:   1000
+name:    hash_checkin
+schema:
+    business_id:  String
+    date:         String
+key_by:   business_id
+partitions:    2
+topic_format:  'checkin-hashed-{}'
+timeout:  1000

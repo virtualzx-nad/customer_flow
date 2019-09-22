@@ -1,0 +1,43 @@
+name:           yelp-business-schema
+source_topic:   business_yelp
+target_topic:   business
+broker:  pulsar://localhost:6650
+max_records:   1000
+
+# Eventually we should just save all topic schemas in a KV store.
+# But as of now we load them
+source_schema:
+    business_id: String
+    # General info
+    name:   String
+    categories: String
+    is_open:   Integer
+    hours:  [Map, String]
+    stars:  Float
+    review_count:  Integer
+    attributes: [Map, String]
+    # Location data
+    state:   String
+    city:    String
+    postal_code: String
+    address:  String
+    longitude:  Float
+    latitude:   Float
+
+target_schema: # Some light renaming and dropping some field
+    id:     String
+    name:   String
+    address:  String
+    hours:  [Map, String]
+    categories:  String
+    state:   String
+    city:    String
+    postal_code: String
+    address:  String
+    longitude:  Float
+    latitude:   Float
+        
+# Map fields in new schema to old ones.
+#Must do this for new fields, but old fields can also be redirected.
+schema_map:
+    id:  business_id

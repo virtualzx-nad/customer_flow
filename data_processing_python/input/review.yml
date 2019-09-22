@@ -1,0 +1,18 @@
+s3object:  s3://multiple-streams/yelp_dataset/review.json
+broker:  pulsar://localhost:6650
+topic:   review_yelp
+max_records:   1000
+schema:
+    review_id:    String
+    business_id:  String
+    user_id:      String
+    date:         String
+    stars:        Float
+    cool:         Integer
+    useful:       Integer
+    funny:        Integer
+    text:         String
+
+
+            
+
