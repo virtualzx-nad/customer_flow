@@ -2,8 +2,10 @@ import logging
 import sys
 
 import yaml
+from redis import Redis
 
 from pipeline_utils.global_window import process_global_window
+
 
 if len(sys.argv) < 1:
     raise ArgumentError('Did not suppy settings through yaml file')
@@ -35,4 +37,5 @@ def output_ranking(state, key, data):
 
 logging.basicConfig(level=settings.get('logging_level', 'INFO'))
 logger = logging.getLogger(__name__)
-process_global_window(update_ranking, output_func=output_ranking, **settings)
+state = Redis(settings['state_server'], db=settings['state_id'])
+process_global_window(state, update_ranking, output_func=output_ranking, **settings)

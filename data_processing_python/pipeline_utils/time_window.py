@@ -4,25 +4,22 @@ import time
 import datetime
 
 import pulsar
-from redis import Redis
 
 from .schema_model import model_class_factory
 
 
 logger = logging.getLogger(__name__)
     
-def process_time_window(add_func, remove_func, init_func, topic, schema,
+def process_time_window(state, add_func, remove_func, topic, schema,
                         output_topic, output_func, output_field, output_schema,
+                        init_func=None,
                         window=10.0, key_by=None, name=None, timeout=None,
                         broker='pulsar://localhost:6650', max_records=-1,
-                        state_server='localhost', state_id=1,
                         date_field='date', date_format='%Y-%m-%d %H:%M:%S',
                         **settings):
     """Update the state correspond to an event stream for a continuously
     sliding time window.
     """
-    state = Redis(state_server, db=state_id)
-
     client = pulsar.Client(broker)
     Model = model_class_factory(**schema)
     avro_schema = pulsar.schema.AvroSchema(Model)
@@ -48,6 +45,9 @@ def process_time_window(add_func, remove_func, init_func, topic, schema,
             continue
         if key not in schema:
             raise KeyError('Output schema contains unknown fields')
+
+    if init_func is None:
+        init_func = add_func
 
     t0 = time.time()
     i = 0

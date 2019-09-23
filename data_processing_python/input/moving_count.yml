@@ -1,5 +1,5 @@
 name:    check_in_count
-topic:   checkin-hashed-0
+topic:   checkin-hashed-1
 # Pulsar broker
 broker:  pulsar://localhost:6650
 max_records:   -1

@@ -11,16 +11,14 @@ from .schema_model import model_class_factory
 logger = logging.getLogger(__name__)
 
 
-def process_global_window(reduce_func, topic, schema,
+def process_global_window(state, reduce_func, topic, schema,
                           output_topic, output_func, output_field, output_schema,
-                          init_func=None, key_by=None, name=None, timeout=1000,
+                          init_func=None, key_by=None, name=None, timeout=None,
                           broker='pulsar://localhost:6650', max_records=-1,
-                          state_server='localhost', state_id=1, **settings):
+                          **settings):
     """Update the state correspond to an event stream for a continuously
     sliding time window.
     """
-    state = Redis(state_server, db=state_id)
-
     if init_func is None:
         init_func = reduce_func
 
