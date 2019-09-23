@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def process_global_window(reduce_func, topic, schema,
                           output_topic, output_func, output_field, output_schema,
-                          init_func=None, key_by=None, name=None,
+                          init_func=None, key_by=None, name=None, timeout=1000,
                           broker='pulsar://localhost:6650', max_records=-1,
                           state_server='localhost', state_id=1, **settings):
     """Update the state correspond to an event stream for a continuously
@@ -52,10 +52,10 @@ def process_global_window(reduce_func, topic, schema,
     i = 0
     while i != max_records:
         try:
-            message = consumer.receive(1000)
+            message = consumer.receive(timeout)
         except Exception as e:
             logger.info('Consumer has been depleted.  Message %s', str(e))
-            t0 += 1
+            t0 += timeout * 1e-3
             break
         data = message.value().__dict__
         consumer.acknowledge(message)
@@ -72,6 +72,6 @@ def process_global_window(reduce_func, topic, schema,
         record = {field: output if field == output_field else data[field]
                   for field in output_schema}
         producer.send(OutModel.from_dict(record))
-
-    logger.info('Average processing rate: {:.2f} records/s'.format(i/(time.time()-t0)))
+    logger.info('Total messages processed: %d', i)
+    logger.info('Average processing rate: %.2f records/s', i/(time.time()-t0))
     client.close()

@@ -10,18 +10,6 @@ from .schema_model import model_class_factory
 
 
 logger = logging.getLogger(__name__)
-
-
-# Helper worker functions
-def incr(state, key, data):
-    state.incr(key)
-
-def decr(state, key, data):
-    state.decr(key)
-
-def output_integer(state, key, data):
-    """Directly output the value associated with the key."""
-    return int(state[key])
     
 def process_time_window(add_func, remove_func, init_func, topic, schema,
                         output_topic, output_func, output_field, output_schema,
