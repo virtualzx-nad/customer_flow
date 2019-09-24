@@ -10,15 +10,19 @@ import yaml
 
 
 def test_message(message, broker='pulsar://localhost:6650', topic='test',
-                 max_records=10000):
+                 max_records=10000, async=True):
     message_size = sys.getsizeof(message)
     logger.info('Throughput test message: %s  (%d bytes)', message, message_size)
     message_size /= 1048576.
     client = pulsar.Client(broker)
     producer = client.create_producer(topic)
+    if async:
+        send = producer.send_async
+    else:
+        send = producer.send
     t0 = time.time()
     for i in range(max_records):
-        producer.send(message.encode('utf-8'))
+        send(message.encode('utf-8'))
     dt = time.time()-t0
     logger.info("Message rate: %10.5f records/s", max_records / dt)
     logger.info("Throughput:   %10.5f MB/s", max_records * message_size / dt)
