@@ -1,4 +1,4 @@
-broker:  pulsar://localhost:6650
+broker:  pulsar://10.0.0.16:6650
 topic:   checkin_yelp
 max_records:   1000
 name:    hash_checkin
@@ -9,3 +9,4 @@ key_by:   business_id
 partitions:    2
 topic_format:  'checkin-hashed-{}'
 timeout:  1000
+

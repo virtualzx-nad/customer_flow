@@ -1,5 +1,5 @@
 s3object:  s3://multiple-streams/yelp_dataset/photo.json
-broker:  pulsar://localhost:6650
+broker:  pulsar://10.0.0.4:6650
 topic:   photo_yelp_test
 max_records:   200
 schema:

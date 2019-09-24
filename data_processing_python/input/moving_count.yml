@@ -1,11 +1,12 @@
 name:    check_in_count
 topic:   checkin-hashed-1
 # Pulsar broker
-broker:  pulsar://localhost:6650
+broker:  pulsar://10.0.0.16:6650
 max_records:   -1
 
 # Redis server
-state_server: host.docker.internal
+state_server: 10.0.0.24
+state_port:   6379
 # db id. which id to use to save the current state
 state_id:     1
 

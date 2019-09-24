@@ -1,4 +1,4 @@
-broker:  pulsar://localhost:6650
+broker:  pulsar://10.0.0.4:6650
 topic:   checkin_ranking
 name:    printer
 max_records:   500

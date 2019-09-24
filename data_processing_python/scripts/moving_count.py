@@ -25,5 +25,5 @@ with open(sys.argv[1]) as f:
 
 logging.basicConfig(level=settings.get('logging_level', 'INFO'))
 logger = logging.getLogger(__name__)
-state = Redis(settings['state_server'], db=settings['state_id'])
+state = Redis(settings['state_server'], port=settings['state_port'], db=settings['state_id'])
 process_time_window(state, incr, decr, output_func=output_integer, **settings)

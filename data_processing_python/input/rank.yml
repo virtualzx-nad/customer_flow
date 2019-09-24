@@ -1,11 +1,12 @@
 name:    checkin_ranking
 topic:   checkin_moving_count
 # Pulsar broker
-broker:  pulsar://localhost:6650
+broker:  pulsar://10.0.0.4:6650
 max_records:   -1
 
 # Redis server
-state_server: host.docker.internal
+state_server: 10.0.0.24
+state_port:   6679
 # db id. which id to use to save the current state
 state_id:     2
 

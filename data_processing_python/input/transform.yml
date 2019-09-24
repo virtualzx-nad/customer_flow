@@ -1,7 +1,7 @@
 name:           yelp-business-schema
 source_topic:   business_yelp
 target_topic:   business
-broker:  pulsar://localhost:6650
+broker:  pulsar://10.0.0.4:6650
 max_records:   1000
 
 # Eventually we should just save all topic schemas in a KV store.
