@@ -24,11 +24,14 @@ client = pulsar.Client(settings['broker'])
 Model = model_class_factory(**settings['schema'])
 avro_schema = pulsar.schema.AvroSchema(Model)
 consumer = client.subscribe(settings['topic'], schema=avro_schema,
-                            subscription_name=settings['name'])
+                            subscription_name=settings['name'],
+                            consumer_type=pulsar.ConsumerType.Shared)
 
 # Connect the producers for each substream
 partitions = settings['partitions']
-producers = [client.create_producer(settings['topic_format'].format(index),
+shift = settings['shift']
+format_str = settings['topic_format']
+producers = [client.create_producer(format_str.format(index + shift),
                                     schema=avro_schema)
              for index in range(partitions)]
 
@@ -39,7 +42,6 @@ timeout = settings['timeout']
 t0 = time.time()
 i = 0
 while i != max_records:
-    i += 1
     try:
         message = consumer.receive(timeout)
     except Exception as e: 
@@ -48,6 +50,7 @@ while i != max_records:
         break
     data = message.value()
     consumer.acknowledge(message)
+    i += 1
     key = getattr(data, key_by)
     index = hash(key) % partitions
     producers[index].send(data)

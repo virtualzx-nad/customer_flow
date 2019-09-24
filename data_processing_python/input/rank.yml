@@ -1,8 +1,8 @@
 name:    checkin_ranking
 topic:   checkin_moving_count
 # Pulsar broker
-broker:  pulsar://10.0.0.4:6650
-max_records:   -1
+broker:  pulsar://10.0.0.16:6650
+max_records:   5000
 
 # Redis server
 state_server: 10.0.0.24

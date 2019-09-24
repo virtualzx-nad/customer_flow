@@ -1,12 +1,12 @@
-name:    check_in_count
-topic:   checkin-hashed-1
+name:    check_in_count2
+topic:   checkin_yelp
 # Pulsar broker
 broker:  pulsar://10.0.0.16:6650
-max_records:   -1
+max_records:  5000 
 
 # Redis server
 state_server: 10.0.0.24
-state_port:   6379
+state_port:   6579
 # db id. which id to use to save the current state
 state_id:     1
 
