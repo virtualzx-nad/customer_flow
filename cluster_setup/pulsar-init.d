@@ -10,7 +10,7 @@ usage() {
 Usage: pulsar-zookeeper (start|stop)
 EOF
 }
-
+export _JAVA_OPTIONS="-Xms400m -Xmx800m"
 PULSAR_HOME=/home/ec2-user/apache-pulsar-2.4.1/
 command=zookeeper
 
