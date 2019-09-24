@@ -1,0 +1,4 @@
+message: 'Throughput test message...                    A larger message                                                   >>>>>>Throughput test message...                    A larger message                                                   >>>>>>Throughput test message...                    A larger message                                                   >>>>>>Throughput test message...                    A larger message                                                   >>>>>>Throughput test message...                    A larger message                                                   >>>>>>'
+broker:  pulsar://10.0.0.16:6650
+topic:   throughput-test 
+max_records:   5000

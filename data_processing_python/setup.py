@@ -14,7 +14,7 @@ setup(name="pipeline_utils",
       description="A very simple yet flexible stream processing model that is free of complex frameworks",
       packages=["pipeline_utils"],
       scripts=["scripts/hash_stream.py", 'scripts/s3_producer.py', 'scripts/moving_count.py', 'scripts/transform_schema.py',
-               'scripts/ranking.py', 'scripts/printer.py'],
+               'scripts/ranking.py', 'scripts/printer.py', 'scripts/throughput.py'],
       # test_suite="pipeline_utils",
       long_description="""This is still very much a work in progress.""",
       install_requires=['pyyaml', 'pulsar-client>=2.4.0', 'redis>=3.0.0', 'smart-open>=1.7.0']
