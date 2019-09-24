@@ -1,4 +1,5 @@
-# Consumer test.  Do character counts
+#!/usr/bin/env python3
+"""Consumer test.  Do character counts"""
 import logging
 import sys
 import time

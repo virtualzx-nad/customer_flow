@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 """A helper script that reads an object from S3, apply a schema to it
 then supply it to Pulsar as a stream producer.

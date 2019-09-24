@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Hash a message stream into multiple streams based on a key.
 (Equivalent to Flink KeyBy)"""
 import logging
