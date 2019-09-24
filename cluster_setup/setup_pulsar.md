@@ -126,10 +126,10 @@ Now start the cluster **once**.
   --cluster insight-XZ-pulsar-cluster \
   --zookeeper 10.0.0.4:2181 \
   --configuration-store 10.0.0.4:2181 \
-  --web-service-url http://<public-DNS>:8080 \
-  --web-service-url-tls https://<public-DNS>:8443 \
-  --broker-service-url pulsar://<public-DNS>:6650 \
-  --broker-service-url-tls pulsar+ssl://<public-DNS>:6651
+  --web-service-url http://$BROKER:8080 \
+  --web-service-url-tls https://$BROKER:8443 \
+  --broker-service-url pulsar://$BROKER:6650 \
+  --broker-service-url-tls pulsar+ssl://$BROKER:6651
 ```
 
 
