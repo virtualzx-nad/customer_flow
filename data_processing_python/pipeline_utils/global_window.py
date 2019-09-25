@@ -6,15 +6,18 @@ import pulsar
 from redis import Redis
 
 from .schema_model import model_class_factory
+from .callback import CallbackHandler
 
 
 logger = logging.getLogger(__name__)
+
 
 
 def process_global_window(state, reduce_func, topic, schema,
                           output_topic, output_func, output_field, output_schema,
                           init_func=None, key_by=None, name=None, timeout=None,
                           broker='pulsar://localhost:6650', max_records=-1,
+                          batching=True, max_pending=5000, initial_position='latest',
                           **settings):
     """Update the state correspond to an event stream for a continuously
     sliding time window.
@@ -25,7 +28,15 @@ def process_global_window(state, reduce_func, topic, schema,
     client = pulsar.Client(broker)
     Model = model_class_factory(**schema)
     avro_schema = pulsar.schema.AvroSchema(Model)
-    consumer = client.subscribe(topic,
+
+    if initial_position == 'earliest':
+        position = pulsar.InitialPosition.Earliest
+    elif initial_position == 'latest':
+        position = pulsar.InitialPosition.Lastest
+    else:
+        raise ValueError('Initial position must be latest or earliest.')
+
+    consumer = client.subscribe(topic, initial_position=position,
                                 subscription_name=name,
                                 schema=avro_schema)
     if key_by is not None and key_by not in schema:
@@ -34,7 +45,9 @@ def process_global_window(state, reduce_func, topic, schema,
         raise KeyError('Key chosen for updating the state table is not in the schema')
 
     OutModel = model_class_factory(**output_schema)
-    producer = client.create_producer(output_topic,
+    producer = client.create_producer(output_topic, block_if_queue_full=True,
+                                      batching_enabled=batching,
+                                      max_pending_messages=max_pending,
                                       schema=pulsar.schema.AvroSchema(OutModel))
     if output_field not in output_schema:
         raise KeyError('The output field is not in the schema.')
@@ -48,6 +61,7 @@ def process_global_window(state, reduce_func, topic, schema,
 
     t0 = time.time()
     i = 0
+    handler = CallbackHandler()
     while i != max_records:
         try:
             message = consumer.receive(timeout)
@@ -69,7 +83,8 @@ def process_global_window(state, reduce_func, topic, schema,
             continue
         record = {field: output if field == output_field else data[field]
                   for field in output_schema}
-        producer.send(OutModel.from_dict(record))
+        producer.send_async(OutModel.from_dict(record), handler.callback)
+    producer.flush()
     logger.info('Total messages processed: %d', i)
     logger.info('Average processing rate: %.2f records/s', i/(time.time()-t0))
     client.close()
