@@ -1,7 +1,7 @@
 broker:  pulsar://10.0.0.16:6650
 topic:   checkin_yelp
-max_records:   10000
-name:    hash_checkin
+max_records:   50000
+name:    hash_checkin_0
 schema:
     business_id:  String
     date:         String
@@ -11,3 +11,6 @@ shift:         0
 topic_format:  'checkin-hashed-{}'
 timeout:  1000
 
+batching:  yes
+max_pending:  5000
+initial_position: earliest
