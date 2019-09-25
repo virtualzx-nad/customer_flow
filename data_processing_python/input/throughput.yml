@@ -1,4 +1,6 @@
 message: 'Throughput test message...                    A larger message                                                   >>>>>>Throughput test message...                    A larger message                                                   >>>>>>Throughput test message...                    A larger message                                                   >>>>>>Throughput test message...                    A larger message                                                   >>>>>>Throughput test message...                    A larger message                                                   >>>>>>'
 broker:  pulsar://10.0.0.16:6650
 topic:   throughput-test 
-max_records:   5000
+max_records:   20000
+batching:      no
+max_pending:   1000

@@ -1,14 +1,14 @@
-name:    check_in_count_mem
-topic:   checkin_yelp
+name:    checkin_mean_var
+topic:   checkin_moving_count 
 # Pulsar broker
 broker:  pulsar://10.0.0.16:6650
 max_records:  5000 
 
 # Redis server
-state_server: 10.0.0.24 
+state_server: 10.0.0.24  
 state_port:   6379
 # db id. which id to use to save the current state
-state_id:     1
+state_id:     3
 
 key_by:   business_id
 
@@ -21,13 +21,15 @@ window:   1000.0
 schema:
     date:          String
     business_id:   String
+    count:         Integer
 
-output_topic:   checkin_moving_count
-output_field:   count
+output_topic:   checkin_mean_variance
+output_field:   [mean, variance]
 output_schema:
     business_id:   String
-    count:         Integer
-    date:          String
+    mean:          Float
+    variance:      Float
 
 timeout:  1000
+value_field:      count
 initial_position:  earliest

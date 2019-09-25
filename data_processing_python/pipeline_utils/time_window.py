@@ -17,14 +17,22 @@ def process_time_window(state, add_func, remove_func, topic, schema,
                         window=10.0, key_by=None, name=None, timeout=None,
                         broker='pulsar://localhost:6650', max_records=-1,
                         date_field='date', date_format='%Y-%m-%d %H:%M:%S',
-                        **settings):
+                        initial_position='latest', **settings):
     """Update the state correspond to an event stream for a continuously
     sliding time window.
     """
     client = pulsar.Client(broker)
     Model = model_class_factory(**schema)
     avro_schema = pulsar.schema.AvroSchema(Model)
-    consumer = client.subscribe(topic,
+
+    if initial_position == 'earliest':
+        position = pulsar.InitialPosition.Earliest
+    elif initial_position == 'latest':
+        position = pulsar.InitialPosition.Lastest
+    else:
+        raise ValueError('Initial position must be latest or earliest.')
+
+    consumer = client.subscribe(topic, initial_position=position,
                                 subscription_name=name,
                                 schema=avro_schema)
     reader = None
@@ -39,12 +47,15 @@ def process_time_window(state, add_func, remove_func, topic, schema,
                                       batching_enabled=batching,
                                       max_pending_messages=max_pending,
                                       schema=pulsar.schema.AvroSchema(OutModel))
-    if output_field not in output_schema:
-        raise KeyError('The output field is not in the schema.')
+    if not isinstance(output_field, (list, tuple)):
+        output_field = [output_field]
+    for field in output_field:
+        if field not in output_schema:
+            raise KeyError('The output field ' + field + 'is not in the schema.')
     if key_by is not None and key_by not in schema:
         raise KeyError('No field matched the `key_by` setting')
     for key in output_schema:
-        if key == output_field:
+        if key in output_field:
             continue
         if key not in schema:
             raise KeyError('Output schema contains unknown fields')
@@ -97,7 +108,10 @@ def process_time_window(state, add_func, remove_func, topic, schema,
             output = output_func(state, key, data)
             if output is None:
                 continue
-            record = {field: output if field == output_field else data[field]
+            if not isinstance(output, (tuple, list)) and len(output_field) == 1:
+                output = [output]
+            output_dict = {key: value for key, value in zip(output_field, output)}
+            record = {field: output_dict[field] if field in output_field else data[field]
                       for field in output_schema}
             producer.send_async(OutModel.from_dict(record), callback=handler.callback)
         tt4 = time.time()
