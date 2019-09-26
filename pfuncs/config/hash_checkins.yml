@@ -12,4 +12,4 @@ name: hash-test
 inputs: [checkin_yelp]
 output:  func_out
 className: hash.HashStream 
-py:  /project/pfuncs/hash.py
+py:  /home/ec2-user/project/pfuncs/hash.py
