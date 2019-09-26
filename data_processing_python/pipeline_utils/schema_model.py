@@ -61,4 +61,10 @@ def model_class_factory(**definition):
             filtered = {key: value for key, value in kwargs.items() if key in cls.__dict__}
             return cls(**filtered)
 
+        @classmethod
+        def decode(cls, raw):
+            """Decode a row binary string to an RecordModel object"""
+            return schema.AvroSchema(cls).decode(raw.encode('utf-8'))
+
     return RecordModel
+

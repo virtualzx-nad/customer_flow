@@ -122,4 +122,3 @@ def process_time_window(state, add_func, remove_func, topic, schema,
     logger.info('Time cost composition: receive %.2f  add %.2f  remove %.2f  send %.2f', wall0, wall1, wall2, wall3)
     client.close()
 
-
