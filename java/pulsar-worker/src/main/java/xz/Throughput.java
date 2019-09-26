@@ -2,7 +2,6 @@ package xz;
 
 import java.time.Instant;
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 
 import org.apache.pulsar.functions.api.Context;
 import org.apache.pulsar.functions.api.Function;
