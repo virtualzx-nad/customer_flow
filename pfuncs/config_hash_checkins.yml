@@ -1,0 +1,15 @@
+userConfig:
+        schema:
+            business_id:  String
+            date:         String
+        key_by:   business_id
+        partitions:    2
+        shift:         0
+        topic_format:  'checkin-hashed-{}'
+tenant: public
+namespace: default
+name: hash-test
+inputs: [checkin_yelp]
+output:  func_out
+className: hash.HashStream 
+py:  /project/pfuncs/hash.py
