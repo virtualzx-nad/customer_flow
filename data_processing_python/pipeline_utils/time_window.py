@@ -99,7 +99,7 @@ def process_time_window(state, add_func, remove_func, topic, schema,
             message = reader.read_next()
             data = message.value().__dict__
             keyl = '___all-fields___' if key_by is None else data[key_by]
-            t_left = datetime.datetime.strptime(data[date_field], date_format).timestamp()
+            t_left =  datetime.datetime.strptime(data[date_field], date_format).timestamp()
             remove_func(state, keyl, data)
             keys_changed[keyl] = data
         tt3 = time.time()

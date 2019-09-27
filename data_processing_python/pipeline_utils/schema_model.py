@@ -42,6 +42,8 @@ def model_class_factory(**definition):
     e.g. [Array, Map, Integer] is an array of dictionaries with integer values.
 
     It does not support Enum or subRecord classes at the moment.
+
+    technically a metaclass but we don't want to get into that.
     """
     class RecordModel(schema.Record):
         env = locals()
@@ -56,15 +58,28 @@ def model_class_factory(**definition):
                 env[key] = type_map[value]()
         del env, key, value
 
+        def __init__(self, *args, **kwargs):
+            super(self).__init__(*args, **kwargs)
+            self.schema = schema.AvroSchema(self)
+
         @classmethod
         def from_dict(cls, kwargs):
             filtered = {key: value for key, value in kwargs.items() if key in cls.__dict__}
             return cls(**filtered)
 
         @classmethod
+        def clone_from(cls, source):
+            """Create a Record object and clone all the fields with identical names
+            from the source object"""
+            return cls.from_dict(source.__dict__)
+
+        @classmethod
         def decode(cls, raw):
             """Decode a row binary string to an RecordModel object"""
-            return schema.AvroSchema(cls).decode(raw.encode('utf-8'))
+            return self.schema.decode(raw.encode('utf-8'))
+
+        def encode(self):
+            return self.schema.encode(self)
 
     return RecordModel
 
