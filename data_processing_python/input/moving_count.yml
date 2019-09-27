@@ -22,11 +22,11 @@ schema:
     date:          String
     business_id:   String
 
-output_topic:   checkin_window_count
-output_field:   count
+output_topic:   checkin_window_max
+output_field:   max_count
 output_schema:
     business_id:   String
-    count:         Integer
+    max_count:         Integer
     date:          String
 
 timeout:  1000

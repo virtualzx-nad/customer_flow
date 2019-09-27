@@ -1,5 +1,5 @@
 userConfig:
-        topic:   checkin_yelp
+        topic:   checkin_window_count
 
         key_by:   business_id
         value_field:  count
@@ -16,16 +16,17 @@ userConfig:
         schema:
             date:          String
             business_id:   String
+            count:         Integer
 
         output_field:   max_count
         output_schema:
             business_id:   String
-            count:         Integer
+            max_count:         Integer
             date:          String
 tenant: public
 namespace: default
-name: window-count-test 
+name: window-max-test 
 inputs: [checkin_yelp]
-output:  checkin_window_count
-className: window_count.WindowCount
-py:  /home/ec2-user/project/pfuncs/window_count.py
+output:  checkin_window_max
+className: window_max.WindowMax
+py:  /home/ec2-user/project/pfuncs/window_max.py
