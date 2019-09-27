@@ -1,7 +1,10 @@
-broker:  pulsar://10.0.0.4:6650
-topic:   checkin_moving_count 
-name:    printer
+broker:  pulsar://10.0.0.16:6650
+topic:   checkin_window_count 
+name:    printer-wc
 max_records:   500
 schema:
     business_id:  String
     count:        Integer 
+    date:  String
+
+initial_position:  earliest

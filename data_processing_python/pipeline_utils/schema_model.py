@@ -58,10 +58,6 @@ def model_class_factory(**definition):
                 env[key] = type_map[value]()
         del env, key, value
 
-        def __init__(self, *args, **kwargs):
-            super(self).__init__(*args, **kwargs)
-            self.schema = schema.AvroSchema(self)
-
         @classmethod
         def from_dict(cls, kwargs):
             filtered = {key: value for key, value in kwargs.items() if key in cls.__dict__}
@@ -76,10 +72,14 @@ def model_class_factory(**definition):
         @classmethod
         def decode(cls, raw):
             """Decode a row binary string to an RecordModel object"""
-            return self.schema.decode(raw.encode('utf-8'))
+            return schema.AvroSchema(cls).decode(raw.encode('utf-8'))
 
         def encode(self):
-            return self.schema.encode(self)
+            return schema.AvroSchema(type(self)).encode(self)
+
+        @classmethod
+        def avro_schema(cls):
+            return schema.AvroSchema(cls)
 
     return RecordModel
 

@@ -23,8 +23,8 @@ userConfig:
             date:          String
 tenant: public
 namespace: default
-name: hash-test
+name: window-count-test 
 inputs: [checkin_yelp]
-output:  checkin_moving_count
+output:  checkin_window_count
 className: window_count.WindowCount
 py:  /home/ec2-user/project/pfuncs/window_count.py

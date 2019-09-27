@@ -1,3 +1,3 @@
-pulsar-client consume persistent://public/default/out \
-  --subscription-name my-subscription
+pulsar-client consume persistent://public/default/checkin_window_count \
+  --subscription-name my-subscription  \
   --num-messages 10

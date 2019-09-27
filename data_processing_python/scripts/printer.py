@@ -19,8 +19,17 @@ logger = logging.getLogger(__name__)
 
 client = pulsar.Client(settings['broker'])
 
+initial_position = settings['initial_position']
+if initial_position == 'earliest':
+    position = pulsar.InitialPosition.Earliest
+elif initial_position == 'latest':
+    position = pulsar.InitialPosition.Lastest
+else:
+    raise ValueError('Initial position must be latest or earliest.')
+
 Model = model_class_factory(**settings['schema'])
 consumer = client.subscribe(settings['topic'], subscription_name=settings['name'],
+                            initial_position=position,
                             schema=pulsar.schema.AvroSchema(Model))
 
 i = 0
