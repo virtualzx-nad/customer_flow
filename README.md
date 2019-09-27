@@ -1,4 +1,4 @@
-# Adaptive Stream
+# Simple and Adaptive Streaming
 A streaming pipeline that can be adapted online by utilizing flexibilities provided by Pulsar functions.
 
 ## Functionalities
