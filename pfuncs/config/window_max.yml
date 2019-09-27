@@ -1,0 +1,31 @@
+userConfig:
+        topic:   checkin_yelp
+
+        key_by:   business_id
+        value_field:  count
+
+        state_server:  10.0.0.24
+        state_port:    6379
+        state_id:      1
+
+        date_field:  date
+        date_format: '%Y-%m-%d %H:%M:%S'
+
+        window:   7.776e+6
+
+        schema:
+            date:          String
+            business_id:   String
+
+        output_field:   max_count
+        output_schema:
+            business_id:   String
+            count:         Integer
+            date:          String
+tenant: public
+namespace: default
+name: window-count-test 
+inputs: [checkin_yelp]
+output:  checkin_window_count
+className: window_count.WindowCount
+py:  /home/ec2-user/project/pfuncs/window_count.py
