@@ -13,7 +13,19 @@ from pipeline_utils import model_class_factory, CallbackHandler
 
 
 def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test',
-                 max_records=-1, batching=True, max_pending=5000):
+                 max_records=-1, batching=True, max_pending=5000, multiplicity=1):
+    """Read from S3 and publish to Pulsar
+
+    Args:
+        s3object:   Address of the S3 object. i.e. s3://my-bucket/directory/some_file.json
+        schema:     Schema of the s3 data
+        broker:     Pulsar broker address
+        topic:      Which topic to publish to
+        max_records:  Maximum of records to publish.  Default is -1, meaning no limits
+        batching:   Allow producer batching.
+        max_pending:  Maximum number of allowed pending records in producer queue
+        multiplicity: The messages are sent out this number of times for each entry in S3
+    """
     Model = model_class_factory(**schema)
     client = pulsar.Client(broker)
     producer = client.create_producer(topic, schema=pulsar.schema.AvroSchema(Model),
@@ -27,7 +39,8 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
         if i == max_records:
             break
         data = yaml.safe_load(line)
-        producer.send_async(Model.from_dict(data), handler.callback)
+        for j in range(multiplicity):
+            producer.send_async(Model.from_dict(data), handler.callback)
     producer.flush()
     logger.info('Last record: %s', str(data))
     logger.info("Processing rate: %.2f records/s", i / (time.time()-t0))
