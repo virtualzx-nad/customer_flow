@@ -1,5 +1,5 @@
 s3object:  s3://multiple-streams/yelp_dataset/business.json
-broker:  pulsar://10.0.0.16:6650
+broker:  pulsar://localhost:6650
 topic:   business_yelp
 max_records:   1000
 schema:

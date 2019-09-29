@@ -1,0 +1,33 @@
+userConfig:
+        topic:    business_yelp 
+
+        key_field:   business_id
+
+        state_server:  host.docker.internal 
+        state_port:    6379
+        state_id:      3
+
+        schema:
+            business_id: String
+            # General info
+            name:   String
+            categories: String
+            is_open:   Integer
+            hours:  [Map, String]
+            stars:  Float
+            review_count:  Integer
+            attributes: [Map, String]
+            # Location data
+            state:   String
+            city:    String
+            postal_code: String
+            address:  String
+            longitude:  Float
+            latitude:   Float
+tenant: public
+namespace: default
+name:   store-business-geoindex 
+inputs: [business_yelp]
+output: business_geospatial_info 
+className: geoindex.StoreGeoIndex 
+py:  /project/pfuncs/geoindex.py
