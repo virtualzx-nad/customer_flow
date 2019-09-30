@@ -5,3 +5,5 @@ max_records:   500
 schema:
     business_id:  String
     ranking:      Integer 
+
+initial_position:  earliest
