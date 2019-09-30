@@ -6,7 +6,7 @@ import dash_html_components as html
 
 from dash.dependencies import Input, Output, State
 
-from db.api import get_processing_rate, get_latency
+from db.api import get_processing_rate, get_latency, get_info_near
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -44,10 +44,10 @@ app.layout = html.Div(children=[
                                 'mapbox':{
                                     'style':  'light',
                                     'accesstoken': 'pk.eyJ1IjoidmlydHVhbHp4IiwiYSI6ImNrMTRra2s3ZDBsOTgzY3FkOG1ybnlodHQifQ.ggJkoaS_tOG6cPxB7BZ88w',
-                                    'zoom': 10,
+                                    'zoom': 7,
                                     'pitch': 0,
                                     'bearing':0,
-                                    'center': {'lat':40.76, 'lon':-73.95}
+                                    'center': {'lat':42.940, 'lon':-76.933}
                                     
                                 },
                                 'margin': {'l': 10, 'r':10, 'b':10, 't':30, 'pad':5},
@@ -57,7 +57,7 @@ app.layout = html.Div(children=[
                     ),
                     style={'border': '1px solid gray'}
                 ),
-                html.Div('(40.760, -73.950)', id='coordinate-display', style={'align': 'right', 'padding': 10}),
+                html.Div('(42.940, -76.933)', id='coordinate-display', style={'align': 'right', 'padding': 10}),
             ])
 
         ]),
@@ -94,6 +94,27 @@ def update_latitude(relayoutData, old_val):
     if relayoutData and 'mapbox.center' in relayoutData:
         return '({:.3f}, {:.3f})'.format(relayoutData['mapbox.center']['lat'], relayoutData['mapbox.center']['lon'])
     return old_val
+
+
+@app.callback(
+    Output('map-graph', 'figure'),
+    [Input('map-graph', 'relayoutData'), Input('update-ticker', 'n_intervals')],
+    [State('map-graph', 'figure')]
+    )
+def update_points(relayoutData, n_intervals, figure):    
+    if relayoutData and 'mapbox.center' in relayoutData:
+        lat = relayoutData['mapbox.center']['lat']
+        lon = relayoutData['mapbox.center']['lon']
+        mapbox = figure['layout']['mapbox']
+        center = mapbox['center']
+        center['lat'] = lat
+        center['lon'] = lon
+        mapbox['zoom'] = relayoutData['mapbox.zoom']
+        mapbox['pitch'] = relayoutData['mapbox.pitch']
+        mapbox['bearing'] = relayoutData['mapbox.bearing']
+        figure['data'] = [get_info_near(lon, lat, 1000)]
+    return figure
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)

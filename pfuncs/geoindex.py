@@ -19,9 +19,9 @@ class StoreGeoIndex(Function):
         key = getattr(record, config['key_field'])
         group_field = config.get('group_by', '__all__')
         if group_field == '__all__':
-            group = group_field
+            group = 'geo:__all__' 
         else:
-            group = getattr(record, group_field) 
+            group = 'geo:' + getattr(record, group_field) 
 
         state = Redis(config['state_server'], port=config['state_port'], db=config['state_id'])
         result = state.geoadd(group, lon, lat, key)
