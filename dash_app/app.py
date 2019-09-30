@@ -6,9 +6,12 @@ import dash_html_components as html
 
 from dash.dependencies import Input, Output, State
 
-from db.api import get_processing_rate, get_latency, get_info_near
+from db.api import get_processing_rate, get_latency, get_info_near, get_categories
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+# initial coordinates
+lat0, lon0 = 42.940, -76.933
+
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -44,10 +47,10 @@ app.layout = html.Div(children=[
                                 'mapbox':{
                                     'style':  'light',
                                     'accesstoken': 'pk.eyJ1IjoidmlydHVhbHp4IiwiYSI6ImNrMTRra2s3ZDBsOTgzY3FkOG1ybnlodHQifQ.ggJkoaS_tOG6cPxB7BZ88w',
-                                    'zoom': 7,
+                                    'zoom': 5,
                                     'pitch': 0,
                                     'bearing':0,
-                                    'center': {'lat':42.940, 'lon':-76.933}
+                                    'center': {'lat': lat0, 'lon': lon0}
                                     
                                 },
                                 'margin': {'l': 10, 'r':10, 'b':10, 't':30, 'pad':5},
@@ -57,16 +60,25 @@ app.layout = html.Div(children=[
                     ),
                     style={'border': '1px solid gray'}
                 ),
-                html.Div('(42.940, -76.933)', id='coordinate-display', style={'align': 'right', 'padding': 10}),
+                html.Div([
+                    html.Div('Coord ({:.3f}, {:.3f})'.format(lat0, lon0), id='coordinate-display', 
+                             style={'width': '35%', 'align': 'left', 'padding': 0, 'display': 'inline-block'}),
+                    html.Div('  Category',
+                             style={'width':'15%', 'align': 'right', 'padding': 0, 'display': 'inline-block'}),
+                    html.Div(style={'width':'37%', 'align': 'left', 'padding': 0, 'display': 'inline-block'},
+                            children=dcc.Dropdown(id='category-dropdown',
+                                 options=[{'label': 'Restaurants', 'value': 'geo:Restaurants'}],
+                                 value='geo:Restaurants')
+                            )
+                ])
             ])
 
         ]),
         dcc.Interval(
                 id="update-ticker",
-                interval=2000,
+                interval=5000,
                 n_intervals=0,
             ),
-
 ])
 
 @app.callback(
@@ -92,16 +104,16 @@ def update_latency(interval):
     )
 def update_latitude(relayoutData, old_val):    
     if relayoutData and 'mapbox.center' in relayoutData:
-        return '({:.3f}, {:.3f})'.format(relayoutData['mapbox.center']['lat'], relayoutData['mapbox.center']['lon'])
+        return 'Coord ({:.3f}, {:.3f})'.format(relayoutData['mapbox.center']['lat'], relayoutData['mapbox.center']['lon'])
     return old_val
 
 
 @app.callback(
     Output('map-graph', 'figure'),
-    [Input('map-graph', 'relayoutData'), Input('update-ticker', 'n_intervals')],
+    [Input('map-graph', 'relayoutData'), Input('update-ticker', 'n_intervals'), Input('category-dropdown', 'value')],
     [State('map-graph', 'figure')]
     )
-def update_points(relayoutData, n_intervals, figure):    
+def update_points(relayoutData, n_intervals, category, figure):    
     if relayoutData and 'mapbox.center' in relayoutData:
         lat = relayoutData['mapbox.center']['lat']
         lon = relayoutData['mapbox.center']['lon']
@@ -112,8 +124,17 @@ def update_points(relayoutData, n_intervals, figure):
         mapbox['zoom'] = relayoutData['mapbox.zoom']
         mapbox['pitch'] = relayoutData['mapbox.pitch']
         mapbox['bearing'] = relayoutData['mapbox.bearing']
-        figure['data'] = [get_info_near(lon, lat, 1000)]
+        figure['data'] = [get_info_near(lon, lat, 2000, random=True, category=category)]
     return figure
+
+
+@app.callback(
+    Output('category-dropdown', 'options'),
+    [Input('update-ticker', 'n_intervals')]
+    )
+def update_category_dropdown(n_intervals):
+    return [{'label': key, 'value': value}
+            for key, value in sorted(get_categories().items())]
 
 
 if __name__ == '__main__':

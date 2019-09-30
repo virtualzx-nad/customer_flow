@@ -1,17 +1,20 @@
 userConfig:
         topic:    business_yelp 
 
-        key_field:   business_id
+        key_field:   [business_id, name]
 
-        state_server:  host.docker.internal 
-        state_port:    6379
-        state_id:      3
+        redis_server:  host.docker.internal 
+        redis_port:    6379
+        redis_id:      3
+
+        group_catalog: 'catalog:categories'
+        group_by:      categories
 
         schema:
             business_id: String
             # General info
             name:   String
-            categories: String
+            categories: [Array, String]
             is_open:   Integer
             hours:  [Map, String]
             stars:  Float

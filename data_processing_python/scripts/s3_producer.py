@@ -13,7 +13,7 @@ from pipeline_utils import model_class_factory, CallbackHandler
 
 
 def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test',
-                 max_records=-1, batching=True, max_pending=5000):
+                 max_records=-1, batching=True, max_pending=5000, vectorize=True):
     Model = model_class_factory(**schema)
     client = pulsar.Client(broker)
     producer = client.create_producer(topic, schema=pulsar.schema.AvroSchema(Model),
@@ -22,11 +22,19 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
                                       max_pending_messages=max_pending)
     t0 = time.time()
     data = None
+    # Determine which fields will be vectorized
+    if vectorize is True:
+        vectorize = [field for field, kind in schema.items() if kind[0] == 'Array']
+    # Callback handler for async producer.
     handler = CallbackHandler()
     for i, line in enumerate(smart_open.open(s3object)):
         if i == max_records:
             break
         data = yaml.safe_load(line)
+        if vectorize:
+            for key in vectorize:
+                if isinstance(data[key], str):
+                    data[key] = [entry.strip() for entry in data[key].split(',')]
         producer.send_async(Model.from_dict(data), handler.callback)
     producer.flush()
     logger.info('Last record: %s', str(data))

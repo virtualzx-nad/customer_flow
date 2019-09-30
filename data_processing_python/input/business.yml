@@ -1,12 +1,12 @@
 s3object:  s3://multiple-streams/yelp_dataset/business.json
 broker:  pulsar://localhost:6650
 topic:   business_yelp
-max_records:   100000
+max_records:   500
 schema:
     business_id: String
     # General info
     name:   String
-    categories: String
+    categories: [Array, String]
     is_open:   Integer
     hours:  [Map, String]
     stars:  Float
