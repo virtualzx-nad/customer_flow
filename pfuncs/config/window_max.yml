@@ -1,6 +1,4 @@
 userConfig:
-        topic:   checkin_window_count
-
         key_by:   business_id
         value_field:  count
 

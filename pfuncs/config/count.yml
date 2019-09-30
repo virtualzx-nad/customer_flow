@@ -1,6 +1,4 @@
 userConfig:
-        topic:   checkin_yelp
-
         key_by:   business_id
 
         state_server:  10.0.0.24

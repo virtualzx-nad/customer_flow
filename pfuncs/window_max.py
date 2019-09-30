@@ -29,6 +29,8 @@ class WindowMax(Function):
             head = state.lpop(key)
             if head is None:
                 break
+            if isinstance(head, bytes):
+                head = head.decode()
             t_head, value_head = head.split(':')
             if float(value_head) > value:
                 state.lpush(head)
@@ -39,6 +41,8 @@ class WindowMax(Function):
             tail = state.rpop(key)
             if tail is None:
                 break
+            if isinstance(tail, bytes):
+                tail = tail.decode()
             t_tail, value_tail = tail.split(':')
             if float(t_tail) > stamp_start:
                 state.rpush(key, tail)
