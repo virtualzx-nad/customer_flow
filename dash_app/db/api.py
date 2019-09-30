@@ -7,17 +7,24 @@ from redis import Redis
 
 
 HOST = os.environ.get("REDIS_HOST", 'localhost')
+PORT = os.environ.get("REDIS_PORT", 'localhost')
+DB_INDEX = os.environ.get("REDIS_DB_INDEX", 'localhost')
 
-redis = Redis(HOST, db=3)
+redis = Redis(HOST, port=PORT, db=DB_INDEX)
 
 
 def get_latency():
-    return float(redis.get('metric:latency'))
+    latency = redis.get('metric:latency')
+    if latency is None:
+        return
+    return float(latency)
 
 
 def get_processing_rate():
-    return float(redis.get('metric:processing_rate')) / 1000
-
+    rate= redis.get('metric:processing_rate')
+    if rate is None:
+        return
+    return float(rate) / 1000
 
 
 def get_categories():

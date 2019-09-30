@@ -3,9 +3,9 @@ userConfig:
 
         key_field:   [business_id, name]
 
-        redis_server:  host.docker.internal 
+        redis_server:  10.0.0.24 
         redis_port:    6379
-        redis_id:      3
+        redis_id:      1
 
         group_catalog: 'catalog:categories'
         group_by:      categories

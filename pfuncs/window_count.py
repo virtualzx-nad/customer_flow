@@ -14,7 +14,7 @@ class WindowCount(Function):
         RecordClass = model_class_factory(**config['schema'])
         record = RecordClass.decode(input)
         # Retrieve the `key` of the current input
-        key = 'wc:' + getattr(record, config['key_by'])
+        key = 'count:' + getattr(record, config['key_by'])
         date_field = config.get('date_field', 'date')
         date_format = config.get('date_format', '%Y-%m-%d %H:%M:%S')
         t_last = datetime.strptime(getattr(record, date_field), date_format)
