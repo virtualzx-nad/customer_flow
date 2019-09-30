@@ -8,3 +8,4 @@ schema:
     date:  String
 
 initial_position:  earliest
+timeout:     1000

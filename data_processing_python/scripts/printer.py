@@ -33,9 +33,14 @@ consumer = client.subscribe(settings['topic'], subscription_name=settings['name'
                             schema=pulsar.schema.AvroSchema(Model))
 
 i = 0
-max_records = settings['max_records']
+max_records = settings.get('max_records', -1)
+timeout = settings.get('timeout', None)
 while i != max_records: 
-    message = consumer.receive()
+    try:
+        message = consumer.receive(timeout)
+    except Exception as e:
+        print('Consumer time out.' + str(e))
+        break
     data = message.value()
     print("Message: %s" % str(data))
     consumer.acknowledge(message)
