@@ -1,5 +1,5 @@
-# living_pipeline
-A live-updating pipeline that can be adapted online by utilizing data queues and a dynamic list of transformations.
+# Simple and Adaptive Streaming
+A streaming pipeline that can be adapted online by utilizing flexibilities provided by Pulsar functions.
 
 ## Functionalities
 

@@ -9,13 +9,15 @@ The VPC setup consists of 3 node ZooKeeper ensemble at `10.0.0.4` to `10.0.0.6`
 
 BookKeepers at `10.0.0.8` to `10.0.0.10`
 
-and Pulsar brokers at `10.0.0.16` to `10.0.0.18` 
+and Pulsar brokers at `10.0.0.14` to `10.0.0.16` 
+
+Pulsar Functions workers at `10.0.0.17` to `10.0.0.23`
 
 The initial minimal setup consists of one instance of for each and an AMI is also created for each node type.
 
 *location of other nodes: Redis `10.0.0.24` to `10.0.0.26`,*  
 *Cassandra `10.0.0.29` to `10.0.0.31`*
-*and python workers `10.0.0.36` and beyond *
+*Flask server at `10.0.0.36`.  Not yet used for addresses beyond.
 
 
 Install Pulsar binary

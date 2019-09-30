@@ -26,7 +26,7 @@ userConfig:
 tenant: public
 namespace: default
 name: window-max-test 
-inputs: [checkin_yelp]
+inputs: [checkin_window_count]
 output:  checkin_window_max
 className: window_max.WindowMax
 py:  /home/ec2-user/project/pfuncs/window_max.py

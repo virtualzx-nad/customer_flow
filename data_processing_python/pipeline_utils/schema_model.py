@@ -72,6 +72,8 @@ def model_class_factory(**definition):
         @classmethod
         def decode(cls, raw):
             """Decode a row binary string to an RecordModel object"""
+            if isinstance(raw, bytes):
+                return schema.AvroSchema(cls).decode(raw)
             return schema.AvroSchema(cls).decode(raw.encode('utf-8'))
 
         def encode(self):
