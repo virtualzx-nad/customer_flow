@@ -8,13 +8,13 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 
-from db.api import get_processing_rate, get_latency, get_info_near, get_categories
+from db.api import get_processing_rate, get_latency, get_info_near, get_categories, refresh_active, get_info_active, initialize
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 # initial coordinates for the map
 lat0, lon0 = 43.126, -77.946
-zoom0 = 5
+zoom0 = 6
 pitch0 = bearing0 = 0
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -80,7 +80,7 @@ app.layout = html.Div(children=[
         ]),
         dcc.Interval(
                 id="update-ticker",
-                interval=5000,
+                interval=1000,
                 n_intervals=0,
             ),
 ])
@@ -137,7 +137,9 @@ def update_points(relayoutData, n_intervals, category, figure):
     mapbox['zoom'] = zoom 
     mapbox['pitch'] = pitch 
     mapbox['bearing'] = bearing 
-    df = get_info_near(lon, lat, 500, max_results=50000, max_shown=2000, category=category)
+    refresh_active(n_intervals)
+    df = get_info_active()
+    # df = get_info_near(lon, lat, 100, max_results=50000, max_shown=10000, category=category)
     figure['data'] = [go.Scattermapbox(lon=df['longitude'], lat=df['latitude'], text=df['label'],
                                        name='nearby_business', marker=dict(size=df['size'], color=df['ratio'], colorscale='Jet',
                                        showscale=True, cmax=1.0, cmin=0.0)
@@ -155,4 +157,5 @@ def update_category_dropdown(n_intervals):
 
 
 if __name__ == '__main__':
+    initialize()
     app.run_server(debug=True, port=8080, host='0.0.0.0')
