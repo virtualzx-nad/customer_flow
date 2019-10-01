@@ -18,9 +18,8 @@ class WindowCount(Function):
         date_field = config.get('date_field', 'date')
         date_format = config.get('date_format', '%Y-%m-%d %H:%M:%S')
         t_last = datetime.strptime(getattr(record, date_field), date_format)
-        t_start = t_last - timedelta(seconds=config['window'])
         stamp_last = t_last.timestamp()
-        stamp_start = t_start.timestamp()
+        stamp_start = stamp_last - config['window'] 
         state.lpush(key, stamp_last)
         while True:
             tail = state.rpop(key)

@@ -33,7 +33,7 @@ class WindowMax(Function):
                 head = head.decode()
             t_head, value_head = head.split(':')
             if float(value_head) > value:
-                state.lpush(head)
+                state.lpush(key, head)
                 break
         state.lpush(key, "{}:{}".format(stamp_last, value))
         value_tail = value
