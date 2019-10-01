@@ -10,7 +10,7 @@ from db.api import get_processing_rate, get_latency, get_info_near, get_categori
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 # initial coordinates
-lat0, lon0 = 42.940, -76.933
+lat0, lon0 = 43.126, -77.946
 
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)

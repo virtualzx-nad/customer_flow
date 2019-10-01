@@ -31,12 +31,15 @@ def get_categories():
     return {entry.decode().split(':')[1]: entry.decode()
             for entry in redis.smembers('catalog:categories')}
 
-def occupancy(business_id):
+def get_occupancy(business_id):
     """Compute the occupancy of a business id"""
     max_occ = redis.lindex('max:'+business_id, -1)
-    occ = redis.lindex('max:'+business_id, 0)
     if max_occ is None:
         return 0, 1
+    if isinstance(max_occ, bytes):
+        max_occ = max_occ.decode()
+    max_occ = int(max_occ.split(':')[1])
+    occ = redis.llen('count:'+business_id)
     return occ, max_occ
 
 def get_info_near(longitude, latitude, radius, unit='km', max_results=10000, random=False, category='geo:Restaurants'):
@@ -57,20 +60,19 @@ def get_info_near(longitude, latitude, radius, unit='km', max_results=10000, ran
     ids, latitudes, longitudes, ratio, max_occupancy = [], [], [], [], []
     for data, (lon, lat) in nearby:
         business_id, name = map(literal_eval, data.decode().split('||'))
-        ids.append(name)
         longitudes.append(lon)
         latitudes.append(lat)
         occ, max_occ = get_occupancy(business_id)
         ratio.append(occ/max_occ)
-        max_occupancy.append(max_occ + 1)
+        max_occupancy.append(max_occ + 2)
+        ids.append('{}\n{}/{}'.format(name, occ, max_occ))
 
     return dict(
             type="scattermapbox",
             lon=longitudes,
             lat=latitudes,
-            color=ratio,
-            size=max_occupancy,
             text=ids,
             name='nearby_business',
-            marker=dict(size=3, opacity=0.6)
+            marker=dict(size=max_occupancy, color=ratio, colorscale='Jet',
+                        showscale=True, cmax=1.0, cmin=0.0)
         )
