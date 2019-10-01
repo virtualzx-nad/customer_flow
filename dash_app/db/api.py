@@ -1,8 +1,10 @@
 import os
 from ast import literal_eval
 from random import sample
+import math
+import time
 
-
+import pandas as pd
 from redis import Redis
 
 
@@ -42,37 +44,29 @@ def get_occupancy(business_id):
     occ = redis.llen('count:'+business_id)
     return occ, max_occ
 
-def get_info_near(longitude, latitude, radius, unit='km', max_results=10000, random=False, category='geo:Restaurants'):
+def get_info_near(longitude, latitude, radius, unit='km', max_results=10000, max_shown=10000, category='geo:Restaurants'):
     """Retrieve businesses near a particular coordinate and their occupancy"""
-    if random:
-        nearby = redis.georadius(category, longitude, latitude, radius,
-                                 unit=unit, withcoord=True)
-    else:
-        nearby = redis.georadius(category, longitude, latitude, radius,
-                                 unit=unit, withcoord=True, sort='ASC')
-
-    if len(nearby) > max_results:
-        if random:
-            nearby = sample(nearby, max_results)
-        else:
-            nearby = nearby[:max_results]
-
-    ids, latitudes, longitudes, ratio, max_occupancy = [], [], [], [], []
+    t0 = time.time()
+    nearby = redis.georadius(category, longitude, latitude, radius,
+                             count=max_results,
+                             unit=unit, withcoord=True)
+    #print('Redis returned %d entries' % len(nearby))
+    if len(nearby) > max_shown:
+        nearby = sample(nearby, max_shown)
+    t1 = time.time()
+    labels, latitudes, longitudes, ratio, sizes = [], [], [], [], []
     for data, (lon, lat) in nearby:
         business_id, name = map(literal_eval, data.decode().split('||'))
+        occ, max_occ = get_occupancy(business_id)
+        if not occ:
+            continue
         longitudes.append(lon)
         latitudes.append(lat)
-        occ, max_occ = get_occupancy(business_id)
         ratio.append(occ/max_occ)
-        max_occupancy.append(max_occ + 2)
-        ids.append('{}\n{}/{}'.format(name, occ, max_occ))
-
-    return dict(
-            type="scattermapbox",
-            lon=longitudes,
-            lat=latitudes,
-            text=ids,
-            name='nearby_business',
-            marker=dict(size=max_occupancy, color=ratio, colorscale='Jet',
-                        showscale=True, cmax=1.0, cmin=0.0)
-        )
+        sizes.append(math.sqrt(max_occ) * 2)
+        labels.append('{}\n{}/{}'.format(name, occ, max_occ))
+    t2=time.time()
+    df = pd.DataFrame({'label': labels, 'latitude':latitudes, 'longitude':longitudes, 'ratio':ratio, 'size':sizes})
+    t3=time.time()
+    print('Redis:{:7.2f} Occ:{:7.2f} DF:{:7.2f} n={}'.format(t1-t0, t2-t1, t3-t2, len(df)))
+    return df

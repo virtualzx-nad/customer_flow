@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
+from waitress import serve
 import dash
 import dash_daq as daq
 import dash_core_components as dcc
 import dash_html_components as html
 
 from dash.dependencies import Input, Output, State
+import plotly.graph_objs as go
 
 from db.api import get_processing_rate, get_latency, get_info_near, get_categories
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-# initial coordinates
-lat0, lon0 = 43.126, -77.946
 
+# initial coordinates for the map
+lat0, lon0 = 43.126, -77.946
+zoom0 = 5
+pitch0 = bearing0 = 0
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -47,9 +51,9 @@ app.layout = html.Div(children=[
                                 'mapbox':{
                                     'style':  'light',
                                     'accesstoken': 'pk.eyJ1IjoidmlydHVhbHp4IiwiYSI6ImNrMTRra2s3ZDBsOTgzY3FkOG1ybnlodHQifQ.ggJkoaS_tOG6cPxB7BZ88w',
-                                    'zoom': 5,
-                                    'pitch': 0,
-                                    'bearing':0,
+                                    'zoom': zoom0,
+                                    'pitch': pitch0,
+                                    'bearing':bearing0,
                                     'center': {'lat': lat0, 'lon': lon0}
                                     
                                 },
@@ -117,14 +121,27 @@ def update_points(relayoutData, n_intervals, category, figure):
     if relayoutData and 'mapbox.center' in relayoutData:
         lat = relayoutData['mapbox.center']['lat']
         lon = relayoutData['mapbox.center']['lon']
-        mapbox = figure['layout']['mapbox']
-        center = mapbox['center']
-        center['lat'] = lat
-        center['lon'] = lon
-        mapbox['zoom'] = relayoutData['mapbox.zoom']
-        mapbox['pitch'] = relayoutData['mapbox.pitch']
-        mapbox['bearing'] = relayoutData['mapbox.bearing']
-        figure['data'] = [get_info_near(lon, lat, 2000, random=True, category=category)]
+        zoom = relayoutData['mapbox.zoom']
+        pitch = relayoutData['mapbox.pitch']
+        bearing = relayoutData['mapbox.bearing']
+    else:
+        lat = lat0
+        lon = lon0
+        zoom = zoom0
+        pitch = pitch0
+        bearing = bearing0
+    mapbox = figure['layout']['mapbox']
+    center = mapbox['center']
+    center['lat'] = lat
+    center['lon'] = lon
+    mapbox['zoom'] = zoom 
+    mapbox['pitch'] = pitch 
+    mapbox['bearing'] = bearing 
+    df = get_info_near(lon, lat, 500, max_results=50000, max_shown=2000, category=category)
+    figure['data'] = [go.Scattermapbox(lon=df['longitude'], lat=df['latitude'], text=df['label'],
+                                       name='nearby_business', marker=dict(size=df['size'], color=df['ratio'], colorscale='Jet',
+                                       showscale=True, cmax=1.0, cmin=0.0)
+                      )]
     return figure
 
 
@@ -138,4 +155,4 @@ def update_category_dropdown(n_intervals):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, host='0.0.0.0')
+    app.run_server(debug=True, port=8080, host='0.0.0.0')
