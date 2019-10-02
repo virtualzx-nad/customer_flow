@@ -1,0 +1,32 @@
+userConfig:
+        key_by:                 business_id
+        value_field:            count
+
+        date_field:             date
+        date_format:            '%Y-%m-%d %H:%M:%S'
+
+        window:                 7.776e+6
+
+        timestamp:              timestamp
+        metric_period:          2000
+        metric_topic:           'metric:window_ratio'
+
+        schema:
+            date:               String
+            business_id:        String
+            count:              Integer
+            timestamp:          Double
+
+        output_field:           occupancy_ratio 
+        output_schema:
+            business_id:        String
+            occupancy_ratio:    Float 
+            date:               String
+
+tenant: public
+namespace: default
+name: window-ratio
+inputs: [checkin_window_count]
+output:  checkin_window_ratio
+className: window_ratio.WindowRatio
+py:  /home/ec2-user/project/pfuncs/window_ratio.py

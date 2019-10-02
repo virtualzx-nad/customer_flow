@@ -55,7 +55,6 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
                     data[key] = [entry.strip() for entry in data[key].split(',')]
         if timestamp:
             data[timestamp] = time.time()
-            print(data, Model.from_dict(data))
         for j in range(multiplicity):
             producer.send_async(Model.from_dict(data), handler.callback)
     producer.flush()
