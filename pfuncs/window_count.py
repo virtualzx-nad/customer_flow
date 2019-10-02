@@ -1,34 +1,52 @@
+"""Count the number of events in a time window"""
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
 
-from pulsar import Function
-from pulsar.schema import AvroSchema
+from pipeline_utils import SchemaFunction
 
-from pipeline_utils import model_class_factory
-from redis import Redis
 
-class WindowCount(Function):
+class WindowCount(SchemaFunction):
     """a sorted list for each key is stored on redis"""
-    def process(self, input, context):
-        config = context.user_config
-        state = Redis(config['state_server'], port=config['state_port'], db=config['state_id'])
-        RecordClass = model_class_factory(**config['schema'])
-        record = RecordClass.decode(input)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.state = defaultdict(deque)
+
+    def kernel(self, record, context, key_by,
+               date_field='date', date_format='%Y-%m-%d %H:%M:%S',
+               window=1000, output_field='count'):
+        """Count the number of instances inside of a time window from
+        the current event
+
+        Args:
+            record:   A dictionary containing the input message fields
+            context:  The Pulsar Functions context object
+            key_by:   The name of the key field, by which items will be counted
+            date_field:  Which field to parse for date information
+            date_format: If specified, the format string used to parse the date
+                      info. If this is None, the date field should contain a
+                      numericl timestamp
+            window:   Window length in seconds
+            output_field:  Which field the output will be saved to
+
+        Returns:
+            The event count in the specified window will be returned in the key
+            specified by output_field
+            """
         # Retrieve the `key` of the current input
-        key = 'count:' + getattr(record, config['key_by'])
-        date_field = config.get('date_field', 'date')
-        date_format = config.get('date_format', '%Y-%m-%d %H:%M:%S')
-        t_last = datetime.strptime(getattr(record, date_field), date_format)
-        stamp_last = t_last.timestamp()
-        stamp_start = stamp_last - config['window'] 
-        state.lpush(key, stamp_last)
-        while True:
-            tail = state.rpop(key)
-            if tail is None:
+        key = record[key_by] 
+        # Retrieve the real time stamp
+        if date_format is None:
+            stamp_last = record[date_field]
+        else:
+            t_last = datetime.strptime(record[date_field], date_format)
+            stamp_last = t_last.timestamp()
+        stamp_start = stamp_last - window 
+        # Update the list of timestamps falling inside of the window
+        state = self.state[key]
+        state.appendleft(stamp_last)
+        while state:
+            tail = state.pop()
+            if tail > stamp_start:
+                state.append(tail)
                 break
-            if float(tail) > stamp_start:
-                state.rpush(key, tail)
-                break
-        ResultClass = model_class_factory(**config['output_schema'])
-        result = ResultClass.clone_from(record)
-        setattr(result, config['output_field'], state.llen(key))
-        return result.encode() 
+        return {output_field: len(state)}

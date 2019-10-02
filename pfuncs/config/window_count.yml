@@ -1,26 +1,22 @@
 userConfig:
-        key_by:   business_id
+        key_by:            business_id
 
-        state_server:  10.0.0.24
-        state_port:    6379
-        state_id:      1
+        date_field:        date
+        date_format:       '%Y-%m-%d %H:%M:%S'
 
-        date_field:  date
-        date_format: '%Y-%m-%d %H:%M:%S'
-
-        window:   7200.0
+        window:            3600.0
 
         schema:
             date:          String
             business_id:   String
-            timestamp:     Float
+            timestamp:     Double
 
-        output_field:   count
+        output_field:      count
         output_schema:
             business_id:   String
             count:         Integer
             date:          String
-            timestamp:     Float
+            timestamp:     Double
 tenant: public
 namespace: default
 name: window-count

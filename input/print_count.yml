@@ -1,11 +1,12 @@
 broker:  pulsar://10.0.0.16:6650
-topic:   checkin_window_max
-name:    printer-wmax
+topic:   checkin_window_count 
+name:    printer-wc
 max_records:   500
 schema:
     business_id:  String
-    max_count:        Integer
+    count:        Integer 
     date:  String
+    timestamp:   Double 
 
 initial_position:  earliest
-timeout:      1000
+timeout:     1000
