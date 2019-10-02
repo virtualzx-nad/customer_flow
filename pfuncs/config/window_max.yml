@@ -19,7 +19,7 @@ userConfig:
             date:          String
             business_id:   String
             count:         Integer
-            timestamp:     Float
+            timestamp:     Double
 
         output_field:      max_count
         output_schema:

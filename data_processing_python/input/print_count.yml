@@ -6,7 +6,7 @@ schema:
     business_id:  String
     count:        Integer 
     date:  String
-    timestamp:    Float
+    timestamp:   Double 
 
 initial_position:  earliest
 timeout:     1000

@@ -77,5 +77,4 @@ class WindowMax(Function):
                 event_time = getattr(record, timestamp_field) 
                 context.publish(metric_topic, '{}:{}:{}'.format(counter, event_time, t),
                                 message_conf={'event_timestamp': int(event_time*1000)})
-                context.get_logger().info('Writing metric {}:{}:{} to {}'.format(counter, event_time, t, metric_topic))
         return result.encode() 

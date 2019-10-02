@@ -6,4 +6,4 @@ timestamp:        timestamp
 schema:
     business_id:  String
     date:         String
-    timestamp:    Float
+    timestamp:    Double 
