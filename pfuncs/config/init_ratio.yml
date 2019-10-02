@@ -1,7 +1,7 @@
 broker:  pulsar://10.0.0.16:6650
-topic:   checkin_crowd_ratio
-name:    printer-wratio
-max_records:   500
+topic:   checkin_crowd_ratio-INDEX
+name:    initialize-wratio
+max_records:   0
 schema:
     business_id:        String
     crowd_ratio:         Float 

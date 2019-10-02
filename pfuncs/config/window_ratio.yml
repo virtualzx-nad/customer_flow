@@ -17,16 +17,16 @@ userConfig:
             count:              Integer
             timestamp:          Double
 
-        output_field:           occupancy_ratio 
+        output_field:           crowd_ratio 
         output_schema:
             business_id:        String
-            occupancy_ratio:    Float 
+            crowd_ratio:        Float 
             date:               String
 
 tenant: public
 namespace: default
-name: window-ratio
-inputs: [checkin_window_count]
-output:  checkin_window_ratio
+name: window-ratio-INDEX
+inputs: [checkin_window_count-INDEX]
+output:  checkin_crowd_ratio-INDEX
 className: window_ratio.WindowRatio
 py:  /home/ec2-user/project/pfuncs/window_ratio.py

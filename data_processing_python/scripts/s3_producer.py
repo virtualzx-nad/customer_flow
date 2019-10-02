@@ -14,7 +14,7 @@ from pipeline_utils import model_class_factory, CallbackHandler
 
 def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test',
                  max_records=-1, batching=True, max_pending=5000, multiplicity=1,
-                 vectorize=True, timestamp=False):
+                 vectorize=True, timestamp=False, partitions=None, key_by=''):
     """Read from S3 and publish to Pulsar
 
     Args:
@@ -31,10 +31,22 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
                       Floating point number in seconds.
         vectorize:    If True, parse any field that is specified as an Array in the Schema,
                       but is written in S3 as a String.
+        partitions:   If specified, will partition the messaged based on a key.
+        key_by:       Which field to use as partition key.  The key will be hashed and messages
+                      published to channels based on the key hash.
     """
     Model = model_class_factory(**schema)
     client = pulsar.Client(broker)
-    producer = client.create_producer(topic, schema=pulsar.schema.AvroSchema(Model),
+    if partitions:
+        if key_by not in schema:
+            raise ValueError('Need to specify a proper key field for partitioning.')
+        producers = [client.create_producer('{}-{}'.format(topic, i), schema=pulsar.schema.AvroSchema(Model),
+                                      block_if_queue_full=True,
+                                      batching_enabled=batching,
+                                      max_pending_messages=max_pending)
+                    for i in range(partitions)]
+    else:
+        producer = client.create_producer(topic, schema=pulsar.schema.AvroSchema(Model),
                                       block_if_queue_full=True,
                                       batching_enabled=batching,
                                       max_pending_messages=max_pending)
@@ -55,11 +67,15 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
                     data[key] = [entry.strip() for entry in data[key].split(',')]
         if timestamp:
             data[timestamp] = time.time()
+        if partitions:
+            index = hash(data[key_by]) % partitions
+            producer = producers[index]
         for j in range(multiplicity):
             producer.send_async(Model.from_dict(data), handler.callback)
-    producer.flush()
+    for producer in producers:
+        producer.flush()
     logger.info('Last record: %s', str(data))
-    logger.info("Processing rate: %.2f records/s", i / (time.time()-t0))
+    logger.info("Processing rate: %.2f records/s", i * multiplicity/ (time.time()-t0))
     if handler.dropped:
         logger.info('Number of dropped messaged: %d', handler.dropped)
         logger.info('Last error result:          %s', handler.result)
