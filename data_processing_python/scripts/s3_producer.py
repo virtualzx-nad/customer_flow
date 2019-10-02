@@ -14,18 +14,23 @@ from pipeline_utils import model_class_factory, CallbackHandler
 
 def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test',
                  max_records=-1, batching=True, max_pending=5000, multiplicity=1,
-                 vectorize=True):
+                 vectorize=True, timestamp=False):
     """Read from S3 and publish to Pulsar
 
     Args:
-        s3object:   Address of the S3 object. i.e. s3://my-bucket/directory/some_file.json
-        schema:     Schema of the s3 data
-        broker:     Pulsar broker address
-        topic:      Which topic to publish to
+        s3object:     Address of the S3 object. i.e. s3://my-bucket/directory/some_file.json
+        schema:       Schema of the s3 data
+        broker:       Pulsar broker address
+        topic:        Which topic to publish to
         max_records:  Maximum of records to publish.  Default is -1, meaning no limits
-        batching:   Allow producer batching.
+        batching:     Allow producer batching.
         max_pending:  Maximum number of allowed pending records in producer queue
         multiplicity: The messages are sent out this number of times for each entry in S3
+        timestamp:    Timestamp the messages based on the current time. If specified, this
+                      argument should contain the field name for the timestamp to live in.
+                      Floating point number in seconds.
+        vectorize:    If True, parse any field that is specified as an Array in the Schema,
+                      but is written in S3 as a String.
     """
     Model = model_class_factory(**schema)
     client = pulsar.Client(broker)
@@ -48,6 +53,8 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
             for key in vectorize:
                 if isinstance(data[key], str):
                     data[key] = [entry.strip() for entry in data[key].split(',')]
+        if timestamp:
+            data[timestamp] = time.time()
         for j in range(multiplicity):
             producer.send_async(Model.from_dict(data), handler.callback)
     producer.flush()

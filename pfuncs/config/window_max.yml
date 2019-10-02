@@ -11,19 +11,24 @@ userConfig:
 
         window:   7.776e+6
 
+        timestamp:   timestamp
+
         schema:
             date:          String
             business_id:   String
             count:         Integer
+            timestamp:     Float
 
-        output_field:   max_count
+        output_field:      max_count
         output_schema:
             business_id:   String
-            max_count:         Integer
+            max_count:     Integer
             date:          String
+        metric_period:     2000
+
 tenant: public
 namespace: default
-name: window-max-test 
+name: window-max
 inputs: [checkin_window_count]
 output:  checkin_window_max
 className: window_max.WindowMax
