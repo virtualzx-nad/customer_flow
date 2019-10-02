@@ -1,3 +1,4 @@
+"""Handles connection with the Redis server"""
 import os
 from ast import literal_eval
 from random import sample

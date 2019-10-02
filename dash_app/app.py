@@ -8,7 +8,9 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 
-from db.api import get_processing_rate, get_latency, get_info_near, get_categories, refresh_active, get_info_active, initialize
+from db.redis_api import get_info_near, get_categories, refresh_active, get_info_active, initialize
+from db.pulsar_sub import LatencyTracker
+
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -16,6 +18,10 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 lat0, lon0 = 43.126, -77.946
 zoom0 = 6
 pitch0 = bearing0 = 0
+
+
+latency_tracker = LatencyTracker()
+
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
@@ -35,7 +41,7 @@ app.layout = html.Div(children=[
                     ), 
                     html.Div(style={'width':'48%', 'display': 'inline-block'}, children=
                         daq.Gauge(id='latency-meter', showCurrentValue=True, units='microsecond',label='Latency',
-                        min=0, max=1000, value=30, size=180)
+                        min=0, max=3000, value=30, size=180)
                     )
                 ])
             ]),
@@ -90,7 +96,10 @@ app.layout = html.Div(children=[
     [Input('update-ticker', 'n_intervals')]
     )
 def update_rate(interval):
-    return get_processing_rate()
+    latency_tracker.update_latency()
+    if not latency_tracker.rate:
+        return 0
+    return latency_tracker.rate[-1]
 
 
 @app.callback(
@@ -98,7 +107,10 @@ def update_rate(interval):
     [Input('update-ticker', 'n_intervals')]
     )
 def update_latency(interval):
-    return get_latency()
+    latency_tracker.update_latency()
+    if not latency_tracker.latency:
+        return 0
+    return latency_tracker.latency[-1]
 
 
 @app.callback(
