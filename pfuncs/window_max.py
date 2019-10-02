@@ -70,10 +70,12 @@ class WindowMax(Function):
         metric_period = config.get('metric_period', 0)
         timestamp_field = config.get('timestamp', None)
         if metric_period and timestamp_field:
-            metric_field = 'metric:' + context.get_function_name()
-            counter = state.incr(metric_field+':count')
+            metric_topic = config.get('metric_topic', 'metric-' + context.get_function_name()) 
+            counter = state.incr(metric_topic+':count')
             if counter % metric_period == 0:
                 t = time.time() 
                 event_time = getattr(record, timestamp_field) 
-                state.lpush(metric_field, '{}:{}:{}'.format(counter, event_time, t)) 
+                context.publish(metric_topic, '{}:{}:{}'.format(counter, event_time, t),
+                                message_conf={'event_timestamp': int(event_time*1000)})
+                context.get_logger().info('Writing metric {}:{}:{} to {}'.format(counter, event_time, t, metric_topic))
         return result.encode() 
