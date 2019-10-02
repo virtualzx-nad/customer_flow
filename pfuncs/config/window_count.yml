@@ -19,8 +19,8 @@ userConfig:
             timestamp:     Double
 tenant: public
 namespace: default
-name: window-count
-inputs: [checkin_yelp]
-output:  checkin_window_count
+name: window-count-INDEX
+inputs: [checkin_yelp-INDEX]
+output:  checkin_window_count-INDEX
 className: window_count.WindowCount
 py:  /home/ec2-user/project/pfuncs/window_count.py
