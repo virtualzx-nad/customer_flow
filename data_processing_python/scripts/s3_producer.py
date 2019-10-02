@@ -59,7 +59,7 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
             producer.send_async(Model.from_dict(data), handler.callback)
     producer.flush()
     logger.info('Last record: %s', str(data))
-    logger.info("Processing rate: %.2f records/s", i / (time.time()-t0))
+    logger.info("Processing rate: %.2f records/s", i * multiplicity/ (time.time()-t0))
     if handler.dropped:
         logger.info('Number of dropped messaged: %d', handler.dropped)
         logger.info('Last error result:          %s', handler.result)

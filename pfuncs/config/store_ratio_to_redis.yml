@@ -1,0 +1,17 @@
+userConfig:
+        key_by:                 business_id
+        value_field:            crowd_ratio
+
+        schema:
+            business_id:        String
+            crowd_ratio:        Float 
+            date:               String
+        prefix:                 crowd_ratio
+
+tenant: public
+namespace: default
+name: store-ratio-redis
+inputs: [checkin_crowd_ratio]
+output:
+className: redis_connector.RedisConnector 
+py:  /home/ec2-user/project/pfuncs/redis_connector.py

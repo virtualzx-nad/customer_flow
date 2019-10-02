@@ -15,7 +15,8 @@ class WindowRatio(SchemaFunction):
         super().__init__(*args, **kwargs)
         self.state = defaultdict(deque)
 
-    def kernel(self, data, context, key_by, value_field='value',
+    def kernel(self, data, context, key_by,
+               value_field='value', output_field='crowd_ratio',
                date_field='date', date_format='%Y-%m-%d %H:%M:%S', window=1000,
                metric_period=0, metric_topic='metric:window_ratio', timestamp=None):
         """Process the customer count and compute its maximum over a window
