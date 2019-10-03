@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
-from waitress import serve
-import dash
-import dash_daq as daq
-import dash_core_components as dcc
-import dash_html_components as html
+import time
+import datetime
 
+import numpy as np
+import dash
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 
-from db.redis_api import get_info_near, get_categories, refresh_active, get_info_active, initialize
+from db.redis_api import get_info_near, get_categories
 from db.pulsar_sub import LatencyTracker
-
+from layout import get_layout 
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -24,94 +23,86 @@ latency_tracker = LatencyTracker()
 
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app.layout = get_layout(lat0, lon0, zoom0, pitch0, bearing0)
 
-app.layout = html.Div(children=[
-    html.H1('Hello Dash'),
 
-    html.Div("Dash: A web application framework for Python."),
+def create_latency_figure(max_len=60):
+    """Create the average latency figure"""
+    latency_tracker.update()
+    keys = sorted(latency_tracker.time.keys())
+    now = datetime.datetime.now()
+    time_vals = [datetime.datetime.fromtimestamp(t)
+                 for t in latency_tracker.time['all'][-max_len:]]
+    latency = np.array(latency_tracker.latency['all'][-max_len:]) * 1e-3
+    return {
+        'data': [go.Scatter(
+                    x=time_vals,
+                    y=latency,
+                    mode='lines'
+                )]
+        ,
+        'layout': {
+            'height': 225,
+            'margin': {'l': 70, 'b': 40, 'r': 10, 't': 10},
+            'yaxis': {'type': 'linear', 'range': [0, np.max(latency)], 'autorange': False, 'title': 'Latency (s)'},
+            'xaxis': {'range': [now-datetime.timedelta(seconds=60), now], 'autorange': False, 'title': 'Date'}
+        }
+    }
 
-    html.Div(children=[
-
-            html.Div(style={'width':'45%', 'display': 'inline-block'}, children=[
-                html.Div("LeftPanel"),
-                html.Div([
-                    html.Div(style={'width':'48%', 'display': 'inline-block'}, children=
-                        daq.Gauge(id='rate-meter', showCurrentValue=True, units='×1000',label='Processing Rate',
-                        min=0, max=10, value=6.7, size=180)
-                    ), 
-                    html.Div(style={'width':'48%', 'display': 'inline-block'}, children=
-                        daq.Gauge(id='latency-meter', showCurrentValue=True, units='microsecond',label='Latency',
-                        min=0, max=3000, value=30, size=180)
-                    )
-                ])
-            ]),
-            html.Div(style={'width':'45%', 'display': 'inline-block'}, children=[
-                html.Div(
-                    dcc.Graph(
-                        id='map-graph',
-                        figure={
-                            'data': [
-                                {'type': 'scattermapbox', 'name': 'main-map'},
-                            ],
-                            'layout': {
-                                'mapbox':{
-                                    'style':  'light',
-                                    'accesstoken': 'pk.eyJ1IjoidmlydHVhbHp4IiwiYSI6ImNrMTRra2s3ZDBsOTgzY3FkOG1ybnlodHQifQ.ggJkoaS_tOG6cPxB7BZ88w',
-                                    'zoom': zoom0,
-                                    'pitch': pitch0,
-                                    'bearing':bearing0,
-                                    'center': {'lat': lat0, 'lon': lon0}
-                                    
-                                },
-                                'margin': {'l': 10, 'r':10, 'b':10, 't':30, 'pad':5},
-                                'automargin': True
-                            }
-                        }
-                    ),
-                    style={'border': '1px solid gray'}
-                ),
-                html.Div([
-                    html.Div('Coord ({:.3f}, {:.3f})'.format(lat0, lon0), id='coordinate-display', 
-                             style={'width': '35%', 'align': 'left', 'padding': 0, 'display': 'inline-block'}),
-                    html.Div('  Category',
-                             style={'width':'15%', 'align': 'right', 'padding': 0, 'display': 'inline-block'}),
-                    html.Div(style={'width':'37%', 'align': 'left', 'padding': 0, 'display': 'inline-block'},
-                            children=dcc.Dropdown(id='category-dropdown',
-                                 options=[{'label': 'Restaurants', 'value': 'geo:Restaurants'}],
-                                 value='geo:Restaurants')
-                            )
-                ])
-            ])
-
-        ]),
-        dcc.Interval(
-                id="update-ticker",
-                interval=1000,
-                n_intervals=0,
-            ),
-])
-
-@app.callback(
-    Output('rate-meter', 'value'),
-    [Input('update-ticker', 'n_intervals')]
-    )
-def update_rate(interval):
-    latency_tracker.update_latency()
-    if not latency_tracker.rate:
-        return 0
-    return latency_tracker.rate[-1]
-
+def create_rate_figure(max_len=60):
+    """Create the processing rate figure"""
+    latency_tracker.update()
+    keys = sorted(latency_tracker.time.keys())
+    data = []
+    now = datetime.datetime.now()
+    i = 0
+    for key in keys:
+        time_vals = [datetime.datetime.fromtimestamp(t) for t in latency_tracker.time[key][-max_len:]]
+        rate = latency_tracker.rate[key][-max_len:]
+        if key == 'all':
+            name = 'Total'
+            style = {'width': 3, 'color': 'black'}
+        else:
+            name = 'Worker ' + str(i)
+            style = {}
+            i += 1
+        data.append(go.Scatter(
+                    x=time_vals,
+                    y=rate,
+                    line=style,
+                    mode='lines',
+                    name=name
+                    ))
+        if key == 'all':
+            # Add ingestion rate data
+            inrate = latency_tracker.ingestion_rate['all'][-max_len:]
+            data.append(go.Scatter(x=time_vals, y=inrate, line={'width':2, 'color':'royalblue', 'dash': 'dash'},
+                                   name='Ingestion', mode='lines'))
+    return {
+        'data': data 
+        ,
+        'layout': {
+            'height': 225,
+            'margin': {'l': 70, 'b': 40, 'r': 10, 't': 10},
+            'yaxis': {'type': 'linear', 'range': [0,5], 'autorange': False, 'tile': 'Rate (kmsg/s)'},
+            'xaxis': {'range': [now-datetime.timedelta(seconds=60), now], 'autorange': False, 'title': 'Date'},
+            'legend':{'x':0.05,'y':0.95, 'borderwidth':1, 'bgcolor':'white' }
+        }
+    }
 
 @app.callback(
-    Output('latency-meter', 'value'),
+    Output('latency-graph', 'figure'),
     [Input('update-ticker', 'n_intervals')]
     )
-def update_latency(interval):
-    latency_tracker.update_latency()
-    if not latency_tracker.latency:
-        return 0
-    return latency_tracker.latency[-1]
+def update_latency(n_intervals):
+    return create_latency_figure()
 
+@app.callback(
+    Output('rate-graph', 'figure'),
+    [Input('update-ticker', 'n_intervals')]
+    )
+def update_rate(n_intervals):
+    return create_rate_figure()
 
 @app.callback(
     Output('coordinate-display', 'children'),
@@ -149,11 +140,9 @@ def update_points(relayoutData, n_intervals, category, figure):
     mapbox['zoom'] = zoom 
     mapbox['pitch'] = pitch 
     mapbox['bearing'] = bearing 
-    refresh_active(n_intervals)
-    df = get_info_active()
-    # df = get_info_near(lon, lat, 100, max_results=50000, max_shown=10000, category=category)
+    df = get_info_near(lon, lat, 100, max_results=10000, max_shown=1000, category=category)
     figure['data'] = [go.Scattermapbox(lon=df['longitude'], lat=df['latitude'], text=df['label'],
-                                       name='nearby_business', marker=dict(size=df['size'], color=df['ratio'], colorscale='Jet',
+                                       name='nearby_business', marker=dict(size=3, color=df['ratio'], colorscale='Jet',
                                        showscale=True, cmax=1.0, cmin=0.0)
                       )]
     return figure
@@ -169,5 +158,4 @@ def update_category_dropdown(n_intervals):
 
 
 if __name__ == '__main__':
-    initialize()
     app.run_server(debug=True, port=8080, host='0.0.0.0')

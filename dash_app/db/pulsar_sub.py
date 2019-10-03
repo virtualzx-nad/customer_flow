@@ -3,6 +3,7 @@ import os
 import uuid
 import time
 import logging
+from collections import defaultdict
 
 
 import pulsar
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class LatencyTracker(object):
     """Susbscribe to the metric channel to obtain realtime updates of latency info"""
-    def __init__(self, broker=BROKER, topic='metric:window_ratio', name=None, cooldown=5):
+    def __init__(self, broker=BROKER, topic='metric:window_ratio', name=None, cooldown=1):
         """Initialize the Latency tracker.
 
         Args:
@@ -33,19 +34,22 @@ class LatencyTracker(object):
         self.consumer = self.client.subscribe(topic, subscription_name=name)
         self.cooldown = cooldown
         self.tip = -1e5
-        self.time = []
-        self.latency = []
-        self.rate = []
+        self.time = defaultdict(list)
+        self.event_time = defaultdict(list)
+        self.latency = defaultdict(list)
+        self.rate = defaultdict(list)
+        self.ingestion_rate = defaultdict(list)
         self.last_count = {}
         self.last_timestamp = {}
+        self.last_eventtime = {}
 
-    def update_latency(self, timeout=20):
+    def update(self, timeout=20, memory=5):
         # First check if it is time to refresh yet. 
         # No redundant updates within the specified cooldown period.
-        t = time.time()
-        if t <= self.tip:
+        t_now = time.time()
+        if t_now <= self.tip:
             return
-        self.tip = t + self.cooldown
+        self.tip = t_now + self.cooldown
         # Receive all new metrics from the pulsar client
         while True:
             try:
@@ -62,11 +66,34 @@ class LatencyTracker(object):
             # Compute latency and message rate if it is not the first message
             if name in self.last_count:
                 rate = (counter - self.last_count[name]) / (t - self.last_timestamp[name]) / 1000 
+                ing_rate = (counter - self.last_count[name]) / (t - self.last_eventtime[name]) / 1000 
                 latency = (t - event_time)*1000
                 print(data, rate, latency)
-                self.time.append(t)
-                self.latency.append(latency)
-                self.rate.append(rate)
+                self.time[name].append(t)
+                self.event_time[name].append(event_time)
+                self.latency[name].append(latency)
+                self.rate[name].append(rate)
+                self.ingestion_rate[name].append(ing_rate)
+                self.last_latency = latency
             self.last_count[name] = counter
             self.last_timestamp[name] = t
+            self.last_eventtime[name] = event_time
+        # Take the average latency and total rate of all recent data
+        cutoff = t_now - memory
+        latency = 0
+        n = 1e-4
+        rate = 0
+        inrate=0
+        for name in self.last_count.keys():
+            if self.time[name] and self.time[name][-1] > cutoff:
+                rate += self.rate[name][-1]
+                inrate += self.ingestion_rate[name][-1]
+                latency += self.latency[name][-1]
+                n += 1
+        latency /= n
+        self.time['all'].append(t_now)
+        self.rate['all'].append(rate)
+        self.ingestion_rate['all'].append(inrate)
+        self.latency['all'].append(latency)
+
 
