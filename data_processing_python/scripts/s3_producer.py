@@ -4,6 +4,7 @@
 then supply it to Pulsar as a stream producer.
 Here we dictate that Avro schema be used throughout the system."""
 import logging
+import uuid
 import sys
 import time
 
@@ -15,7 +16,7 @@ from pipeline_utils import model_class_factory, CallbackHandler
 logger = logging.getLogger(__name__)
 
 
-def process_request(reader, wait=False):
+def process_request(reader, wait=False, timeout=20):
     """Read requests from a Pulsar Reader.Returns None if there is no valid command
 
     Requests are in the format of   `<command>:<value>`.
@@ -28,9 +29,14 @@ def process_request(reader, wait=False):
     """
     if not reader or not (reader.has_message_available() or wait):
         return
-    message = reader.read_next()
+    try:
+        if wait:
+            timeout = None
+        message = reader.read_next(timeout)
+    except Exception as e:
+        logger.debug('Reader timeout.  No message available. ' + str(e))
+        return
     request = message.value()
-    reader.acknowledge(message)
     if ':' not in request:
         logger.warn('Invalud request: [%s]', request)
         return
@@ -64,9 +70,6 @@ def process_request(reader, wait=False):
     logger.warn('Unrecognized command [%s]', command)
 
 
-def get_producer(producer_list, partitions, i):
-    """Get the correct producer from the producer list
-    """
 def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test',
                  max_records=-1, batching=True, max_pending=5000, multiplicity=1,
                  vectorize=True, timestamp=False, partitions=None, key_by='',
@@ -111,6 +114,7 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
     Model = model_class_factory(**schema)
     avro_schema = pulsar.schema.AvroSchema(Model)
 
+    logger.info('Initializing client and request reader.')
     # Create a Pulsar client and a group of producers
     client = pulsar.Client(broker)
     # Because partitions may change, producers are only created when needed
@@ -134,7 +138,7 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
     if request_topic:   # Initiate a request reader.
         request_reader = client.create_reader(request_topic,
                 pulsar.MessageId.latest,  # Always read from the end
-                schema=pulsar.schema.StringSchema,  # Commands in plain text
+                schema=pulsar.schema.StringSchema(),  # Commands in plain text
                 reader_name='s3_reader:'+str(uuid.uuid4())  # Unique name
             )
         logger.info('Will read request from topic [%s]', request_topic)
@@ -153,26 +157,35 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
     # Callback handler for async producer.
     handler = CallbackHandler()
 
-    # Read content of the S3 object
-    for i, line in enumerate(smart_open.open(s3object)):
-        if i == max_records:
-            break
-        # Check if we need to check publication rates 
-        if service_interval > 0 and i % service_interval == 0:
-            # First read requests
-            while True:
-                request = process_request(request_reader, wait=paused)
-                if request:
+    try:    # Ensure that clients are properly closed on error exit
+        logger.info('Starting to process %s', str(s3object))
+        # Read content of the S3 object
+        for i, line in enumerate(smart_open.open(s3object)):
+            if i == max_records:
+                break
+            # Check if we need to check publication rates 
+            if service_interval > 0 and i % service_interval == 0:
+                # First read requests
+                while True:
+                    request = process_request(request_reader, wait=paused)
+                    if not request and not paused:
+                        break
                     command, value = request
-                    logger.debug('Got request {}, {}'.format(command, value)) 
+                    logger.info('Received request {}, {} from {}'.format(command,
+                                 value, request_reader.topic())) 
                     if command == 'STAT':  # Change status
                         if value == 'PAUSE':
-                            paused = True
+                            if not paused:
+                                logger.info('Publication paused.')
+                                paused = True
                         elif value == 'RESUME':
-                            paused = False
-                            last_i = i
+                            if paused:
+                                logger.info('Publication resumed')
+                                paused = False
+                                last_i = i
                         elif value == 'STOP':
                             stopped = True
+                            logger.info('Publication stopped')
                     elif command == 'PART':   # Change partitions
                         partitions = value 
                         logger.info('Number of partitions changed to %d', value)
@@ -182,58 +195,60 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
                     elif command == 'RATE':
                         max_rate = value
                         logger.info('Max rate changed to %d', value)
+                    if not paused or stopped:
+                        break
+                # Now check message rate is too high
+                dt_plan = float(i - last_i) / max(max_rate, 0.1)
+                t_now = time.time()
+                dt_actual = t_now - last_stamp
+                if dt_actual < dt_plan:
+                    logger.debug('Processed %d msg in %.2fs. Waiting %.3fs.',
+                        i - last_i, dt_actual, dt_plan - dt_actual)
+                    time.sleep(dt_plan - dt_actual)
+                last_stamp = time.time()
+                last_i = i
 
-                if not paused or stopped:
-                    break
-            # Now check message rate is too high
-            dt_plan = float(i - last_i) / max(max_rate, 0.1)
-            t_now = time.time()
-            dt_actual = t_now - last_stamp
-            if dt_actual < dt_plan:
-                logger.debug('Processed %d msg in %.2fs. Waiting %.3fs.',
-                    i - last_i, dt_actual, dt_plan - dt_actual)
-                time.sleep(dt_plan - dt_actual)
-            last_stamp = time.time()
-            last_i = i
+            if stopped:
+                break
 
-        if stopped:
-            break
-
-        # Get the data from S3 and process it into proper dict form
-        data = yaml.safe_load(line)
-        if vectorize:
-            for key in vectorize:
-                if isinstance(data[key], str):
-                    data[key] = [entry.strip() for entry in data[key].split(',')]
-        if timestamp:
-            data[timestamp] = time.time()
-        # check which partition I am in 
-        if partitions:
-            if key_by not in schema:
-                raise ValueError('Need to specify a proper key field for partitioning.')
-            index = hash(data[key_by]) % partitions
-            producer = get_producer(index)
-        else:
-            producer = get_producer()
-        for j in range(multiplicity):
-            producer.send_async(Model.from_dict(data), handler.callback)
-    for producer in producers.values():
-        producer.flush()
-    logger.info('Last record: %s', str(data))
-    logger.info("Processing rate: %.2f records/s", i * multiplicity/ (time.time()-t0))
-    if handler.dropped:
-        logger.info('Number of dropped messaged: %d', handler.dropped)
-        logger.info('Last error result:          %s', handler.result)
-    client.close()
+            # Get the data from S3 and process it into proper dict form
+            data = yaml.safe_load(line)
+            if vectorize:
+                for key in vectorize:
+                    if isinstance(data[key], str):
+                        data[key] = [entry.strip() for entry in data[key].split(',')]
+            if timestamp:
+                data[timestamp] = time.time()
+            # check which partition I am in 
+            if partitions:
+                if key_by not in schema:
+                    raise ValueError('Need to specify a proper key field for partitioning.')
+                index = hash(data[key_by]) % partitions
+                producer = get_producer(index)
+            else:
+                producer = get_producer()
+            for j in range(multiplicity):
+                producer.send_async(Model.from_dict(data), handler.callback)
+        for producer in producers.values():
+            producer.flush()
+        logger.info('Last record: %s', str(data))
+        logger.info("Processing rate: %.2f records/s", i * multiplicity/ (time.time()-t0))
+        if handler.dropped:
+            logger.info('Number of dropped messaged: %d', handler.dropped)
+            logger.info('Last error result:          %s', handler.result)
+    finally:
+        client.close()
 
 
 if __name__ == '__main__':
     import yaml
     # If Yaml setting file is not supplied
     if len(sys.argv) < 1:
-        raise ArgumentError('Did not suppy settings through yaml file')
+        raise RuntimeError('Did not suppy settings through yaml file')
     with open(sys.argv[1]) as f:
         settings = yaml.safe_load(f)
+    if not isinstance(settings, dict):
+        raise RuntimeError('Invalid settings file.')
     logging.basicConfig(level=settings.pop('logging_level', 'INFO'))
 
     process_file(**settings)
