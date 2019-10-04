@@ -7,8 +7,8 @@ import dash
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 
-from db.redis_api import get_info_near, get_categories
-from db.pulsar_sub import LatencyTracker
+from db_api.redis_connection import get_info_near, get_categories
+from db_api.pulsar_connection import LatencyTracker, SourceController
 from layout import get_layout 
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -19,7 +19,9 @@ zoom0 = 6
 pitch0 = bearing0 = 0
 
 
+# Connect to Pulsar to get the metrics data and controller for the source
 latency_tracker = LatencyTracker()
+source_controller = SourceController('checkin_controller')
 
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
@@ -155,6 +157,54 @@ def update_points(relayoutData, n_intervals, category, figure):
 def update_category_dropdown(n_intervals):
     return [{'label': key, 'value': value}
             for key, value in sorted(get_categories().items())]
+
+
+@app.callback(
+    Output('ingestion-rate-input', 'value'),
+    [Input('ingestion-rate-input', 'value')]
+    )
+def update_ingestion_rate(rate):
+    rate = max(1, int(rate))
+    source_controller.set_max_rate(rate)
+    return rate
+
+
+@app.callback(
+    Output('multiplicity-input', 'value'),
+    [Input('multiplicity-input', 'value')]
+    )
+def update_multiplicity(multiplicity):
+    multiplicity = max(1, int(multiplicity))
+    source_controller.set_multiplicity(multiplicity)
+    return multiplicity
+
+
+@app.callback(
+    Output('partitions-input', 'value'),
+    [Input('partitions-input', 'value')]
+    )
+def update_partitions(partitions):
+    partitions = max(1, int(partitions))
+    source_controller.set_partition(partitions)
+    return partitions
+
+
+@app.callback(
+    Output('empty-div', 'children'),
+    [Input('pause-button', 'n_clicks')]
+    )
+def pause_source(n_clicks):
+    source_controller.pause()
+    return 'Input source paused.'
+
+
+@app.callback(
+    Output('empty-div', 'children'),
+    [Input('resume-button', 'n_clicks')]
+    )
+def resume_source(n_clicks):
+    source_controller.resume()
+    return 'Input source resumed'
 
 
 if __name__ == '__main__':

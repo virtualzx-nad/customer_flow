@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+import dash_daq as daq
 import dash_core_components as dcc
 import dash_html_components as html
 
 
-def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
+def get_layout(lat0, lon0, zoom0, pitch0, bearing0, tracker, controller):
     return html.Div(children=[
         html.H1('Global Customer Flow Monitor'),
 
@@ -12,12 +13,49 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
         html.Div(children=[
 
                 html.Div(style={'width':'45%', 'display': 'inline-block'}, children=[
+                    html.Div('Monitor Pipeline Performance'),
                     html.Div(
                          dcc.Graph(id='rate-graph')
                     ),
                     html.Div(
                          dcc.Graph(id='latency-graph')
-                    )
+                    ),
+                    html.Div([
+                        html.Div(
+                            daq.NumericInput(id='multiplicity-input',
+                                value=1, min=1, max=100,
+                                label='multiplicity',
+                                size=80,
+                            ),              
+                            style={'width':'25%', 'display': 'inline-block'}
+                        ),
+                        html.Div(
+                            daq.NumericInput(id='ingestion-rate-input',
+                                value=1000, min=1, max=10000,
+                                label='ingestion rate',
+                                size=120,
+                            ),
+                            style={'width':'25%', 'display': 'inline-block'}
+                        ),
+                    ])
+                    html.Div([
+                        html.Div(
+                            dcc.Button('Resume', id='resume-button'),
+                            style={'width':'25%', 'display': 'inline-block'}
+                        ),
+                        html.Div(
+                            dcc.Button('Pause', id='pause-button'),
+                            style={'width':'25%', 'display': 'inline-block'}
+                        ),
+                        html.Div(
+                            daq.NumericInput(id='partitions-input',
+                                value=1, min=1, max=64,
+                                label='Partitions',
+                                size=120,
+                            ),
+                            style={'width':'35%', 'display': 'inline-block'}
+                        )
+                    ])
                 ]),
                 html.Div(style={'width':'45%', 'display': 'inline-block'}, children=[
                     html.Div(
@@ -58,10 +96,12 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
                 ])
 
             ]),
+            html.Div('', id='empty-div'),
             dcc.Interval(
                     id="update-ticker",
                     interval=1000,
                     n_intervals=0,
                 ),
+            dcc.Store(id='data-store', data={})
     ])
 

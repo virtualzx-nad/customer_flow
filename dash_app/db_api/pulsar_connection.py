@@ -97,3 +97,49 @@ class LatencyTracker(object):
         self.latency['all'].append(latency)
 
 
+class SourceController(object):
+    """Controller for a S3 source connector. This is done by publishing commands to
+    the control topic of that producer"""
+    def __init__(self, control_topic, broker=BROKER):
+        """Initialize the controller object
+
+        Args:
+            control_topic:  Name of the control topic of the S3 source connector
+            broker:         URI of Pulsar broker.
+            name:           Subscription name.  By default, create a random name.
+        """
+        self.control_topic = control_topic
+        self.client = pulsar.Client(broker)
+        self.producer = self.client.create_producer(control_topic, schema=pulsar.schema.StringSchema(),
+                              block_if_queue_full=True)
+
+    def pause(self):
+        self.producer.send("STAT:PAUSE")
+
+    def resume(self):
+        self.producer.send("STAT:RESUME")
+
+    def set_max_rate(self, rate=100):
+        """Change the maximum publication rate in message per second"""
+        if not isinstance(rate, int):
+            raise TypeError('rate must be an integer')
+        if rate <= 0:
+            raise ValueError('rate must be positive')
+        self.producer.send("RATE:"+str(rate))
+
+    def set_partition(self, partition=0):
+        """Change the number of partitions"""
+        if not isinstance(partition, int):
+            raise TypeError('partition must be an integer')
+        if partition <= 0:
+            raise ValueError('partition must be positive')
+        self.producer.send("PART:"+str(partition))
+
+    def set_multiplicity(self, multiplicity=1):
+        """Change the multiplicity factor of the producer.  Every message will be
+        published this number of times."""
+        if not isinstance(multiplicity, int):
+            raise TypeError('multiplicity must be an integer')
+        if multiplicity <= 0:
+            raise ValueError('multiplicity must be positive')
+        self.producer.send("MULT:"+str(multiplicity))
