@@ -146,9 +146,9 @@ def update_points(relayoutData, n_intervals, category, figure):
     mapbox['zoom'] = zoom 
     mapbox['pitch'] = pitch 
     mapbox['bearing'] = bearing 
-    df = get_info_near(lon, lat, 100, max_results=10000, max_shown=1000, category=category)
+    df = get_info_near(lon, lat, 100, max_results=5000, max_shown=1000, category=category)
     figure['data'] = [go.Scattermapbox(lon=df['longitude'], lat=df['latitude'], text=df['label'],
-                                       name='nearby_business', marker=dict(size=3, color=df['ratio'], colorscale='Jet',
+                                       name='nearby_business', marker=dict(size=4, color=df['ratio'], colorscale='Jet',
                                        showscale=True, cmax=1.0, cmin=0.0)
                       )]
     return figure

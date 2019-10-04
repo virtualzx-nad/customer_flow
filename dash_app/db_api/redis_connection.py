@@ -29,16 +29,19 @@ def get_info_near(longitude, latitude, radius, unit='km', max_results=10000, max
     if len(nearby) > max_shown:
         nearby = sample(nearby, max_shown)
     t1 = time.time()
-    labels, latitudes, longitudes, ratio = [], [], [], []
+    labels, latitudes, longitudes, ratios = [], [], [], []
     for data, (lon, lat) in nearby:
         business_id, name = map(literal_eval, data.decode().split('||'))
         ratio = redis.hget('crowd_ratio', business_id)
+        if ratio is None:
+            continue
+        ratio = float(ratio)
         longitudes.append(lon)
         latitudes.append(lat)
-        ratio.append(ratio)
+        ratios.append(ratio)
         labels.append('{}\ncrowd: {}'.format(name, ratio))
     t2=time.time()
-    df = pd.DataFrame({'label': labels, 'latitude':latitudes, 'longitude':longitudes, 'ratio':ratio})
+    df = pd.DataFrame({'label': labels, 'latitude':latitudes, 'longitude':longitudes, 'ratio':ratios})
     t3=time.time()
     print('Redis:{:7.2f} Occ:{:7.2f} DF:{:7.2f} n={}'.format(t1-t0, t2-t1, t3-t2, len(df)))
     return df
