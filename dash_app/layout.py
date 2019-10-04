@@ -31,7 +31,7 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
                         ),
                         html.Div(
                             daq.NumericInput(id='ingestion-rate-input',
-                                value=1000, min=1, max=10000,
+                                value=3000, min=1, max=10000,
                                 label='ingestion rate',
                                 size=110,
                             ),
@@ -50,7 +50,7 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
                         html.Div('Processing Control',style={'width':'30%', 'display': 'inline-block'}),
                         html.Div(
                             daq.NumericInput(id='partitions-input',
-                                value=1, min=1, max=64,
+                                value=3, min=1, max=64,
                                 label='Parallelism',
                                 size=150,
                             ),
@@ -59,6 +59,7 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
                     ])
                 ]),
                 html.Div(style={'width':'45%', 'display': 'inline-block'}, children=[
+                    html.Div('', id='realtime-div'),
                     html.Div(
                         dcc.Graph(
                             id='map-graph',

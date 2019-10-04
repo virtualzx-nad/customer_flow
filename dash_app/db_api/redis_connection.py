@@ -4,6 +4,7 @@ from ast import literal_eval
 from random import sample
 import math
 import time
+from datetime import datetime
 
 import pandas as pd
 from redis import Redis
@@ -19,9 +20,11 @@ def get_categories():
     return {entry.decode().split(':')[1]: entry.decode()
             for entry in redis.smembers('catalog:categories')}
 
-def get_info_near(longitude, latitude, radius, unit='km', max_results=10000, max_shown=1000, category='geo:Restaurants'):
+def get_info_near(longitude, latitude, radius, realtime,
+                  unit='km', max_results=10000, max_shown=1000, category='geo:Restaurants'):
     """Retrieve businesses near a particular coordinate and their occupancy"""
     t0 = time.time()
+    cutoff = realtime - 7.9e6
     nearby = redis.georadius(category, longitude, latitude, radius,
                              count=max_results,
                              unit=unit, withcoord=True)
@@ -32,14 +35,22 @@ def get_info_near(longitude, latitude, radius, unit='km', max_results=10000, max
     labels, latitudes, longitudes, ratios = [], [], [], []
     for data, (lon, lat) in nearby:
         business_id, name = map(literal_eval, data.decode().split('||'))
-        ratio = redis.hget('crowd_ratio', business_id)
-        if ratio is None:
+        entry = redis.hget('crowd_ratio', business_id)
+        if entry is None:
             continue
+        if isinstance(entry, bytes):
+            entry = entry.decode()
+        if '||' not in entry:
+            continue
+        ratio, stamp, max_count = entry.split('||')
         ratio = float(ratio)
+        stamp = datetime.strptime(stamp , '%Y-%m-%d %H:%M:%S').timestamp()
+        if stamp < cutoff:
+            ratio = 0.0
         longitudes.append(lon)
         latitudes.append(lat)
         ratios.append(ratio)
-        labels.append('{}\ncrowd: {}'.format(name, ratio))
+        labels.append('{}\n{:.2f}% of {}'.format(name, ratio*100, max_count))
     t2=time.time()
     df = pd.DataFrame({'label': labels, 'latitude':latitudes, 'longitude':longitudes, 'ratio':ratios})
     t3=time.time()

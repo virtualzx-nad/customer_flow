@@ -14,8 +14,8 @@ from layout import get_layout
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 # initial coordinates for the map
-lat0, lon0 = 43.126, -77.946
-zoom0 = 6
+lat0, lon0 = 36.107, -115.168 
+zoom0 = 14
 pitch0 = bearing0 = 0
 
 
@@ -48,7 +48,7 @@ def create_latency_figure(max_len=60):
                 )]
         ,
         'layout': {
-            'height': 225,
+            'height': 220,
             'margin': {'l': 70, 'b': 40, 'r': 10, 't': 10},
             'yaxis': {'type': 'linear', 'range': [0, max_latency], 'autorange': False, 'title': 'Latency (s)'},
             'xaxis': {'range': [now-datetime.timedelta(seconds=60), now], 'autorange': False, 'title': 'Date'}
@@ -88,7 +88,7 @@ def create_rate_figure(max_len=60):
         'data': data 
         ,
         'layout': {
-            'height': 225,
+            'height': 220,
             'margin': {'l': 70, 'b': 40, 'r': 10, 't': 10},
             'yaxis': {'type': 'linear', 'range': [0,5], 'autorange': False, 'title': 'Rate (x1000msg/s)'},
             'xaxis': {'range': [now-datetime.timedelta(seconds=60), now], 'autorange': False, 'title': 'Date'},
@@ -146,9 +146,9 @@ def update_points(relayoutData, n_intervals, category, figure):
     mapbox['zoom'] = zoom 
     mapbox['pitch'] = pitch 
     mapbox['bearing'] = bearing 
-    df = get_info_near(lon, lat, 100, max_results=5000, max_shown=1000, category=category)
+    df = get_info_near(lon, lat, 1000, latency_tracker.real_time, max_results=500, max_shown=500, category=category)
     figure['data'] = [go.Scattermapbox(lon=df['longitude'], lat=df['latitude'], text=df['label'],
-                                       name='nearby_business', marker=dict(size=4, color=df['ratio'], colorscale='Jet',
+                                       name='nearby_business', marker=dict(size=5, color=df['ratio'], colorscale='Jet',
                                        showscale=True, cmax=1.0, cmin=0.0)
                       )]
     return figure
@@ -209,6 +209,14 @@ def pause_source(n_clicks):
 def resume_source(n_clicks):
     source_controller.resume()
     return 'Input source resumed'
+
+
+@app.callback(
+    Output('realtime-div', 'children'),
+    [Input('update-ticker', 'n_intervals')]
+    )
+def update_realtime(n_intervals):
+    return str(datetime.datetime.fromtimestamp(latency_tracker.real_time))
 
 
 if __name__ == '__main__':

@@ -42,6 +42,7 @@ class LatencyTracker(object):
         self.last_count = {}
         self.last_timestamp = {}
         self.last_eventtime = {}
+        self.real_time = 0
 
     def update(self, timeout=20, memory=5):
         # First check if it is time to refresh yet. 
@@ -59,6 +60,7 @@ class LatencyTracker(object):
             data = message.value()
             if isinstance(data, bytes):
                 data = data.decode()
+            self.real_time = message.event_timestamp() * 1e-3
             name, counter, event_time, t = data.split(':')
             counter = int(counter)
             event_time = float(event_time)
@@ -66,9 +68,9 @@ class LatencyTracker(object):
             # Compute latency and message rate if it is not the first message
             if name in self.last_count:
                 rate = (counter - self.last_count[name]) / (t - self.last_timestamp[name]) / 1000 
-                ing_rate = (counter - self.last_count[name]) / (t - self.last_eventtime[name]) / 1000 
+                ing_rate = (counter - self.last_count[name]) / (event_time - self.last_eventtime[name]) / 1000 
                 latency = (t - event_time)*1000
-                print(data, rate, latency)
+                print(data, rate, latency, self.real_time)
                 self.time[name].append(t)
                 self.event_time[name].append(event_time)
                 self.latency[name].append(latency)
