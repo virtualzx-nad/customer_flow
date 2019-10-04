@@ -31,7 +31,10 @@ class RedisConnector(SchemaFunction):
 
         # Retrieve the `key` and `value` of the current input
         key = data[key_by] 
-        value = data[value_field] 
+        if isinstance(value_field, (list, tuple)):
+            value = '||'.join([str(data[field]) for field in value_field])
+        else:
+            value = data[value_field] 
 
         # Identify group names and store them to redis
         if group_by:

@@ -1,10 +1,11 @@
 userConfig:
         key_by:                 business_id
-        value_field:            crowd_ratio
+        value_field:            [crowd_ratio, date, max_count]
 
         schema:
             business_id:        String
             crowd_ratio:        Float 
+            max_count:          Integer
             date:               String
         prefix:                 crowd_ratio
 

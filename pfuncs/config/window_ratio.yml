@@ -5,7 +5,7 @@ userConfig:
         date_field:             date
         date_format:            '%Y-%m-%d %H:%M:%S'
 
-        window:                 7.776e+6
+        window:                 1.0e+9
 
         timestamp:              timestamp
         metric_period:          2000
@@ -21,6 +21,7 @@ userConfig:
         output_schema:
             business_id:        String
             crowd_ratio:        Float 
+            max_count:          Integer
             date:               String
 
 tenant: public

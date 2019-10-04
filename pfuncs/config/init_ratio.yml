@@ -6,6 +6,7 @@ schema:
     business_id:        String
     crowd_ratio:         Float 
     date:               String
+    max_count:          Integer
 
 initial_position:  earliest
 timeout:      1000

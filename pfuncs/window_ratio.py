@@ -16,7 +16,7 @@ class WindowRatio(SchemaFunction):
         self.state = defaultdict(deque)
 
     def kernel(self, data, context, key_by,
-               value_field='value', output_field='crowd_ratio',
+               value_field='value', output_field='crowd_ratio', max_output='max_count',
                date_field='date', date_format='%Y-%m-%d %H:%M:%S', window=1000,
                metric_period=0, metric_topic='metric:window_ratio', timestamp=None):
         """Process the customer count and compute its maximum over a window
@@ -61,4 +61,7 @@ class WindowRatio(SchemaFunction):
                 message = '{}:{}:{}:{}'.format(self.name, self.counter, event_time, t)
                 context.publish(metric_topic, message, 
                                 message_conf={'event_timestamp': int(stamp_last * 1000)})
-        return {output_field: value/(value_tail + 2)}
+        result = {output_field: value/(value_tail + 1)}
+        if max_output:
+            result[max_output] = value_tail
+        return result 
