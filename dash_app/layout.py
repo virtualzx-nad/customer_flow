@@ -4,16 +4,15 @@ import dash_core_components as dcc
 import dash_html_components as html
 
 
-def get_layout(lat0, lon0, zoom0, pitch0, bearing0, tracker, controller):
+def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
     return html.Div(children=[
-        html.H1('Global Customer Flow Monitor'),
+        html.H2('Customer Flow Monitor'),
 
-        html.Div("A simple and scalable system based on Pulsar Functions"),
+        html.Div("A scalable system based on Pulsar"),
 
         html.Div(children=[
 
-                html.Div(style={'width':'45%', 'display': 'inline-block'}, children=[
-                    html.Div('Monitor Pipeline Performance'),
+                html.Div(style={'width':'50%', 'display': 'inline-block'}, children=[
                     html.Div(
                          dcc.Graph(id='rate-graph')
                     ),
@@ -21,37 +20,39 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0, tracker, controller):
                          dcc.Graph(id='latency-graph')
                     ),
                     html.Div([
+                        html.Div('Ingestion Control',style={'width':'14%', 'display': 'inline-block'}),
                         html.Div(
                             daq.NumericInput(id='multiplicity-input',
                                 value=1, min=1, max=100,
                                 label='multiplicity',
-                                size=80,
+                                size=60,
                             ),              
-                            style={'width':'25%', 'display': 'inline-block'}
+                            style={'width':'13%', 'display': 'inline-block'}
                         ),
                         html.Div(
                             daq.NumericInput(id='ingestion-rate-input',
                                 value=1000, min=1, max=10000,
                                 label='ingestion rate',
-                                size=120,
+                                size=110,
                             ),
-                            style={'width':'25%', 'display': 'inline-block'}
+                            style={'width':'23%', 'display': 'inline-block'}
                         ),
-                    ])
+                        html.Div(
+                            html.Button('Resume', id='resume-button', style={'width': '70'}),
+                            style={'width':'23%', 'display': 'inline-block'}
+                        ),
+                        html.Div(
+                            html.Button('Pause', id='pause-button', style={'width': '70'}),
+                            style={'width':'23%', 'display': 'inline-block'}
+                        ),
+                    ]),
                     html.Div([
-                        html.Div(
-                            dcc.Button('Resume', id='resume-button'),
-                            style={'width':'25%', 'display': 'inline-block'}
-                        ),
-                        html.Div(
-                            dcc.Button('Pause', id='pause-button'),
-                            style={'width':'25%', 'display': 'inline-block'}
-                        ),
+                        html.Div('Processing Control',style={'width':'30%', 'display': 'inline-block'}),
                         html.Div(
                             daq.NumericInput(id='partitions-input',
                                 value=1, min=1, max=64,
-                                label='Partitions',
-                                size=120,
+                                label='Parallelism',
+                                size=150,
                             ),
                             style={'width':'35%', 'display': 'inline-block'}
                         )
@@ -96,7 +97,13 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0, tracker, controller):
                 ])
 
             ]),
-            html.Div('', id='empty-div'),
+            html.Div([
+                    html.Div('', id='empty-div1'),
+                    html.Div('', id='empty-div2'),
+                    html.Div('', id='empty-div3'),
+                    html.Div('', id='empty-div4'),
+                    html.Div('', id='empty-div5'),
+                ], id='empty-div'),
             dcc.Interval(
                     id="update-ticker",
                     interval=1000,

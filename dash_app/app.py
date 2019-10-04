@@ -36,6 +36,10 @@ def create_latency_figure(max_len=60):
     time_vals = [datetime.datetime.fromtimestamp(t)
                  for t in latency_tracker.time['all'][-max_len:]]
     latency = np.array(latency_tracker.latency['all'][-max_len:]) * 1e-3
+    if latency.size:
+        max_latency = np.max(latency)
+    else:
+        max_latency = 1
     return {
         'data': [go.Scatter(
                     x=time_vals,
@@ -46,7 +50,7 @@ def create_latency_figure(max_len=60):
         'layout': {
             'height': 225,
             'margin': {'l': 70, 'b': 40, 'r': 10, 't': 10},
-            'yaxis': {'type': 'linear', 'range': [0, np.max(latency)], 'autorange': False, 'title': 'Latency (s)'},
+            'yaxis': {'type': 'linear', 'range': [0, max_latency], 'autorange': False, 'title': 'Latency (s)'},
             'xaxis': {'range': [now-datetime.timedelta(seconds=60), now], 'autorange': False, 'title': 'Date'}
         }
     }
@@ -86,7 +90,7 @@ def create_rate_figure(max_len=60):
         'layout': {
             'height': 225,
             'margin': {'l': 70, 'b': 40, 'r': 10, 't': 10},
-            'yaxis': {'type': 'linear', 'range': [0,5], 'autorange': False, 'tile': 'Rate (kmsg/s)'},
+            'yaxis': {'type': 'linear', 'range': [0,5], 'autorange': False, 'title': 'Rate (x1000msg/s)'},
             'xaxis': {'range': [now-datetime.timedelta(seconds=60), now], 'autorange': False, 'title': 'Date'},
             'legend':{'x':0.05,'y':0.95, 'borderwidth':1, 'bgcolor':'white' }
         }
@@ -160,37 +164,37 @@ def update_category_dropdown(n_intervals):
 
 
 @app.callback(
-    Output('ingestion-rate-input', 'value'),
+    Output('empty-div1', 'children'),
     [Input('ingestion-rate-input', 'value')]
     )
 def update_ingestion_rate(rate):
     rate = max(1, int(rate))
     source_controller.set_max_rate(rate)
-    return rate
+    return 'Max rate set to ' + str(rate)
 
 
 @app.callback(
-    Output('multiplicity-input', 'value'),
+    Output('empty-div2', 'children'),
     [Input('multiplicity-input', 'value')]
     )
 def update_multiplicity(multiplicity):
     multiplicity = max(1, int(multiplicity))
     source_controller.set_multiplicity(multiplicity)
-    return multiplicity
+    return 'Multiplicity set to ' + str(multiplicity)
 
 
 @app.callback(
-    Output('partitions-input', 'value'),
+    Output('empty-div3', 'children'),
     [Input('partitions-input', 'value')]
     )
 def update_partitions(partitions):
     partitions = max(1, int(partitions))
     source_controller.set_partition(partitions)
-    return partitions
+    return 'Partitions set to ' + str(partitions)
 
 
 @app.callback(
-    Output('empty-div', 'children'),
+    Output('empty-div4', 'children'),
     [Input('pause-button', 'n_clicks')]
     )
 def pause_source(n_clicks):
@@ -199,7 +203,7 @@ def pause_source(n_clicks):
 
 
 @app.callback(
-    Output('empty-div', 'children'),
+    Output('empty-div5', 'children'),
     [Input('resume-button', 'n_clicks')]
     )
 def resume_source(n_clicks):
