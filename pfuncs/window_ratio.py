@@ -60,5 +60,5 @@ class WindowRatio(SchemaFunction):
                 event_time = data[timestamp] 
                 message = '{}:{}:{}:{}'.format(self.name, self.counter, event_time, t)
                 context.publish(metric_topic, message, 
-                                message_conf={'event_timestamp': int(event_time*1000)})
-        return {output_field: value/value_tail}
+                                message_conf={'event_timestamp': int(stamp_last * 1000)})
+        return {output_field: value/(value_tail + 2)}

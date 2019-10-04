@@ -1,7 +1,5 @@
 userConfig:
-        topic:    business_yelp 
-
-        key_field:   [business_id, name]
+        key_fields:   [business_id, name]
 
         redis_server:  10.0.0.24 
         redis_port:    6379

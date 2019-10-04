@@ -1,44 +1,52 @@
 """Pulsar functions for establish a geospatial index in the redis server
 using the coordinates specified in a topic.  Any repeated occurance of a
 key will be considered an update and old records will be overwritten"""
-from pulsar import Function
-from pulsar.schema import AvroSchema
-
-from pipeline_utils import model_class_factory
+from pipeline_utils import SchemaFunction 
 from redis import Redis
 
 
-class StoreGeoIndex(Function):
+class StoreGeoIndex(SchemaFunction):
     """Pulsar function for storing geospatial information to redis"""
-    def process(self, input, context):
-        config = context.user_config
-        RecordClass = model_class_factory(**config['schema'])
-        record = RecordClass.decode(input) 
-        lat = getattr(record, config.get('latitude_field', 'latitude'))
-        lon = getattr(record, config.get('longitude_field', 'longitude'))
-        key_fields = config.get('key_field', '__raw__')
+    def kernel(self, data, context, key_fields,
+               latitude_field='latitude', longitude_field='longitude',
+               group_by='__all__', group_catalog=None,
+               redis_server='10.0.0.24', redis_port=6379, redis_id=1):
+        """Create geospatial index in Redis from messages of an input topic
+
+        Args:
+            data:       Input message in a dict
+            context:    Pulsar Functions context object
+            key_fields: Which fields to flatten and save to the key field in Redis
+            latitude_field:  Which field contains the latitude data
+            longitude_field: Which field contains the longitude data
+            group_by:   When specified, multiple geospatial index tables will be
+                        created in Redis based on values in this field.  Note that
+                        if this field is an Array, the message will be registered in
+                        each elements."""
+        lat = data[latitude_field]
+        lon = data[longitude_field]
         if not isinstance(key_fields, (tuple, list)):
             key_fields = [key_fields]
-        keys = [getattr(record, key_field) for key_field in key_fields]
+        keys = [data[key_field] for key_field in key_fields]
         decoded = [repr(key.decode()) if isinstance(key, bytes) else repr(key) for key in keys]
-        group_field = config.get('group_by', '__all__')
-        if group_field == '__all__':
+        # Determine which groups this entry belongs to
+        if group_by == '__all__':
             groups = ['geo:__all__']
         else:
-            group_names = getattr(record, group_field)
+            group_names = data[group_by] 
             if group_names is None:
                 group_names = ['__unknown__']
             elif isinstance(group_names, str):
                 group_names = [group_names]
             groups = ['geo:' + name for name in group_names] 
 
-        redis = Redis(config['redis_server'], port=config['redis_port'], db=config['redis_id'])
+        # Connect to redis server
+        redis = Redis(redis_server, port=redis_port, db=redis_id)
 
         # If `group_catalog` option is specified, store the catalog of all existing categories
         # in this field on redis 
-        catalog = config.get('group_catalog', None)
-        if catalog:
-            redis.sadd(catalog, *groups)
+        if group_catalog:
+            redis.sadd(group_catalog, *groups)
 
         # Update the entry location for each groups that it belongs to.
         for group in groups:

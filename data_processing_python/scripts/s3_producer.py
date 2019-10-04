@@ -73,7 +73,8 @@ def process_request(reader, wait=False, timeout=20):
 def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test',
                  max_records=-1, batching=True, max_pending=5000, multiplicity=1,
                  vectorize=True, timestamp=False, partitions=None, key_by='',
-                 request_topic='', max_rate=1000, service_interval=1000):
+                 request_topic='', max_rate=1000, service_interval=200,
+                 response_time=0.2, start_position=0):
     """Read from S3 and publish to Pulsar.  It can also ingest from a local/network file
     or HDFS, if the URI of the file is supplied.
 
@@ -108,7 +109,9 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
         request_topic:      If specified, will listen to command in this topic and update settings.
         service_interval:   Interval between which the rates will be monitored and incoming
                             requests processed.
-
+        response_time:      Minimum time interval for accepting requests.  This will increase
+                            frequency of request polling if max_rate is low.
+        start_position:     Start from this position, instead of the beginning.
     """
     # Create the schema model for the output topic
     Model = model_class_factory(**schema)
@@ -157,78 +160,98 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
     # Callback handler for async producer.
     handler = CallbackHandler()
 
+    # Calculate the interval at which control requests and max rates will be processed
+    min_interval = max(1, int(response_time * max_rate))
+    interval = min(service_interval, min_interval) 
+
+    # This is for keeping track where in the file we are, for restarting
+    logger.info('Starting to process %s', str(s3object))
+    position = 0
     try:    # Ensure that clients are properly closed on error exit
-        logger.info('Starting to process %s', str(s3object))
         # Read content of the S3 object
-        for i, line in enumerate(smart_open.open(s3object)):
-            if i == max_records:
-                break
-            # Check if we need to check publication rates 
-            if service_interval > 0 and i % service_interval == 0:
-                # First read requests
-                while True:
-                    request = process_request(request_reader, wait=paused)
-                    if not request and not paused:
-                        break
-                    command, value = request
-                    logger.info('Received request {}, {} from {}'.format(command,
-                                 value, request_reader.topic())) 
-                    if command == 'STAT':  # Change status
-                        if value == 'PAUSE':
-                            if not paused:
-                                logger.info('Publication paused.')
-                                paused = True
-                        elif value == 'RESUME':
-                            if paused:
-                                logger.info('Publication resumed')
-                                paused = False
-                                last_i = i
-                        elif value == 'STOP':
-                            stopped = True
-                            logger.info('Publication stopped')
-                    elif command == 'PART':   # Change partitions
-                        partitions = value 
-                        logger.info('Number of partitions changed to %d', value)
-                    elif command == 'MULT':
-                        multiplicity = value
-                        logger.info('Message multiplicity changed to %d', value)
-                    elif command == 'RATE':
-                        max_rate = value
-                        logger.info('Max rate changed to %d', value)
-                    if not paused or stopped:
-                        break
-                # Now check message rate is too high
-                dt_plan = float(i - last_i) / max(max_rate, 0.1)
-                t_now = time.time()
-                dt_actual = t_now - last_stamp
-                if dt_actual < dt_plan:
-                    logger.debug('Processed %d msg in %.2fs. Waiting %.3fs.',
-                        i - last_i, dt_actual, dt_plan - dt_actual)
-                    time.sleep(dt_plan - dt_actual)
-                last_stamp = time.time()
-                last_i = i
+        with smart_open.open(s3object) as f:
+            # Track the current position.  This is for restarting purposes
+            if start_position > 0:
+                f.seek(start_position)
+                position = start_position
 
-            if stopped:
-                break
+            for i, line in enumerate(f):
+                if i == max_records:
+                    logger.info('Maximum number of records reached.')
+                    break
+                position += len(line)
+                # Check if we need to check publication rates 
+                if interval > 0 and i % interval == 0:
+                    # First read requests
+                    while True:
+                        request = process_request(request_reader, wait=paused)
+                        if not request and not paused:
+                            break
+                        command, value = request
+                        logger.info('Received request {}, {} from {}'.format(command,
+                                     value, request_reader.topic())) 
+                        if command == 'STAT':  # Change status
+                            if value == 'PAUSE':
+                                if not paused:
+                                    logger.info('Publication paused.')
+                                    paused = True
+                            elif value == 'RESUME':
+                                if paused:
+                                    logger.info('Publication resumed')
+                                    paused = False
+                                    last_i = i
+                            elif value == 'STOP':
+                                stopped = True
+                                logger.info('Publication stopped')
+                        elif command == 'PART':   # Change partitions
+                            partitions = value 
+                            logger.info('Number of partitions changed to %d', value)
+                        elif command == 'MULT':
+                            multiplicity = value
+                            logger.info('Message multiplicity changed to %d', value)
+                        elif command == 'RATE':
+                            max_rate = value
+                            logger.info('Max rate changed to %d', value)
+                            min_interval = max(1, int(response_time * max_rate))
+                            interval = min(service_interval, min_interval) 
+                        if not paused or stopped:
+                            break
+                    # Now check message rate is too high
+                    dt_plan = float(i - last_i) / max(max_rate, 0.1)
+                    t_now = time.time()
+                    dt_actual = t_now - last_stamp
+                    if dt_actual < dt_plan:
+                        logger.debug('Processed %d msg in %.2fs. Waiting %.3fs.',
+                            i - last_i, dt_actual, dt_plan - dt_actual)
+                        time.sleep(dt_plan - dt_actual)
+                    last_stamp = time.time()
+                    last_i = i
 
-            # Get the data from S3 and process it into proper dict form
-            data = yaml.safe_load(line)
-            if vectorize:
-                for key in vectorize:
-                    if isinstance(data[key], str):
-                        data[key] = [entry.strip() for entry in data[key].split(',')]
-            if timestamp:
-                data[timestamp] = time.time()
-            # check which partition I am in 
-            if partitions:
-                if key_by not in schema:
-                    raise ValueError('Need to specify a proper key field for partitioning.')
-                index = hash(data[key_by]) % partitions
-                producer = get_producer(index)
-            else:
-                producer = get_producer()
-            for j in range(multiplicity):
-                producer.send_async(Model.from_dict(data), handler.callback)
+                if stopped:
+                    break
+
+                # Get the data from S3 and process it into proper dict form
+                try:
+                    data = yaml.safe_load(line)
+                except yaml.parser.ParserError:
+                    logger.warn('Badly formed line skipped: %s', line)
+                    continue
+                if vectorize:
+                    for key in vectorize:
+                        if isinstance(data[key], str):
+                            data[key] = [entry.strip() for entry in data[key].split(',')]
+                if timestamp:
+                    data[timestamp] = time.time()
+                # check which partition I am in 
+                if partitions:
+                    if key_by not in schema:
+                        raise ValueError('Need to specify a proper key field for partitioning.')
+                    index = hash(data[key_by]) % partitions
+                    producer = get_producer(index)
+                else:
+                    producer = get_producer()
+                for j in range(multiplicity):
+                    producer.send_async(Model.from_dict(data), handler.callback)
         for producer in producers.values():
             producer.flush()
         logger.info('Last record: %s', str(data))
@@ -237,6 +260,7 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
             logger.info('Number of dropped messaged: %d', handler.dropped)
             logger.info('Last error result:          %s', handler.result)
     finally:
+        logger.info('Exit position: %d', position)
         client.close()
 
 

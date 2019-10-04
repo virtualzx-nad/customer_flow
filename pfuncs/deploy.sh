@@ -1,7 +1,7 @@
 ADMIN=/home/ec2-user/apache-pulsar-2.4.1/bin/pulsar-admin
 cwd=`pwd`
 
-for x in `seq 0 3`
+for x in `seq 0 2`
 do
   # Initialize the Schema for each of these topics involved 
   sed "s/INDEX/$x/g"  config/init_count.yml > tmp.yml
