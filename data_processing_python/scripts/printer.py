@@ -23,7 +23,7 @@ initial_position = settings['initial_position']
 if initial_position == 'earliest':
     position = pulsar.InitialPosition.Earliest
 elif initial_position == 'latest':
-    position = pulsar.InitialPosition.Lastest
+    position = pulsar.InitialPosition.Latest
 else:
     raise ValueError('Initial position must be latest or earliest.')
 

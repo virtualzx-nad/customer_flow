@@ -20,9 +20,9 @@ class RedisConnector(object):
         if host is None:
             host = os.environ.get("REDIS_HOST", 'localhost')
         if port is None:
-            port = os.environ.get("REDIS_PORT", 'localhost')
+            port = os.environ.get("REDIS_PORT", 6379)
         if db is None:
-            db = os.environ.get("REDIS_DB_INDEX", 'localhost')
+            db = os.environ.get("REDIS_DB_INDEX", 1)
         self.client = redis.Redis(host, port=port, db=db, decode_responses=True)
         try:
             self.client.ping()

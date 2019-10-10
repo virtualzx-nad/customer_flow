@@ -1,9 +1,15 @@
 s3object:  s3://multiple-streams/yelp_dataset/checkin_processed.json
 broker:  pulsar://10.0.0.16:6650
 topic:   checkin_yelp
-max_records:   -1 
+max_records:      -1 
 timestamp:        timestamp
 schema:
     business_id:  String
     date:         String
     timestamp:    Double 
+partitions:       3
+key_by:           business_id
+multiplicity:     1
+max_rate:         3000
+request_topic:    checkin_controller
+start_position:   0 

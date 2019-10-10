@@ -1,11 +1,12 @@
 broker:  pulsar://10.0.0.16:6650
-topic:   checkin_crowd_ratio
+topic:   checkin_crowd_ratio-0
 name:    printer-wratio
 max_records:   500
 schema:
     business_id:        String
     crowd_ratio:         Float 
     date:               String
+    max_count:          Integer
 
-initial_position:  earliest
+initial_position:  latest
 timeout:      1000
