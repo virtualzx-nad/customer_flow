@@ -12,6 +12,7 @@ from db_api.redis_connection import RedisConnector
 from db_api.pulsar_connection import LatencyTracker, SourceController
 from layout import get_layout 
 
+
 external_stylesheets = ['/style.css']
 
 # initial coordinates for the map
@@ -275,4 +276,4 @@ def serve_css():
 
 if __name__ == '__main__':
 
-    app.run_server(port=8080, host='0.0.0.0')
+    app.run_server(port=8080, host='0.0.0.0', ssl_context='adhoc')
