@@ -2,30 +2,35 @@
 import time
 import datetime
 
+import flask
 import numpy as np
 import dash
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 
-from db_api.redis_connection import get_info_near, get_categories
+from db_api.redis_connection import RedisConnector 
 from db_api.pulsar_connection import LatencyTracker, SourceController
 from layout import get_layout 
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+external_stylesheets = ['/style.css']
 
 # initial coordinates for the map
-lat0, lon0 = 43.126, -77.946
-zoom0 = 6
+lat0, lon0 = 36.107, -115.168 
+zoom0 = 12
 pitch0 = bearing0 = 0
 
 
 # Connect to Pulsar to get the metrics data and controller for the source
 latency_tracker = LatencyTracker()
 source_controller = SourceController('checkin_controller')
+redis_connector = RedisConnector()
 
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = get_layout(lat0, lon0, zoom0, pitch0, bearing0)
+
+server = app.server
 
 
 def create_latency_figure(max_len=60):
@@ -48,7 +53,7 @@ def create_latency_figure(max_len=60):
                 )]
         ,
         'layout': {
-            'height': 225,
+            'height': 210,
             'margin': {'l': 70, 'b': 40, 'r': 10, 't': 10},
             'yaxis': {'type': 'linear', 'range': [0, max_latency], 'autorange': False, 'title': 'Latency (s)'},
             'xaxis': {'range': [now-datetime.timedelta(seconds=60), now], 'autorange': False, 'title': 'Date'}
@@ -62,12 +67,13 @@ def create_rate_figure(max_len=60):
     data = []
     now = datetime.datetime.now()
     i = 0
+    rate_axis_max = 3
     for key in keys:
         time_vals = [datetime.datetime.fromtimestamp(t) for t in latency_tracker.time[key][-max_len:]]
-        rate = latency_tracker.rate[key][-max_len:]
+        rate = np.array(latency_tracker.rate[key][-max_len:])
         if key == 'all':
             name = 'Total'
-            style = {'width': 3, 'color': 'black'}
+            style = {'width': 2, 'color': 'black'}
         else:
             name = 'Worker ' + str(i)
             style = {}
@@ -81,16 +87,19 @@ def create_rate_figure(max_len=60):
                     ))
         if key == 'all':
             # Add ingestion rate data
-            inrate = latency_tracker.ingestion_rate['all'][-max_len:]
-            data.append(go.Scatter(x=time_vals, y=inrate, line={'width':2, 'color':'royalblue', 'dash': 'dash'},
+            inrate = np.array(latency_tracker.ingestion_rate['all'][-max_len:])
+            data.append(go.Scatter(x=time_vals, y=inrate, line={'width':3, 'color':'red', 'dash': 'dash'},
                                    name='Ingestion', mode='lines'))
+            if rate.size and inrate.size:
+                rate_axis_max = max(rate_axis_max, np.max(rate) + 0.9)
+                rate_axis_max = max(rate_axis_max, np.max(inrate) + 0.9)
     return {
         'data': data 
         ,
         'layout': {
-            'height': 225,
+            'height': 210,
             'margin': {'l': 70, 'b': 40, 'r': 10, 't': 10},
-            'yaxis': {'type': 'linear', 'range': [0,5], 'autorange': False, 'title': 'Rate (x1000msg/s)'},
+            'yaxis': {'type': 'linear', 'range': [0,rate_axis_max], 'autorange': False, 'title': 'Rate (x1000msg/s)'},
             'xaxis': {'range': [now-datetime.timedelta(seconds=60), now], 'autorange': False, 'title': 'Date'},
             'legend':{'x':0.05,'y':0.95, 'borderwidth':1, 'bgcolor':'white' }
         }
@@ -146,9 +155,10 @@ def update_points(relayoutData, n_intervals, category, figure):
     mapbox['zoom'] = zoom 
     mapbox['pitch'] = pitch 
     mapbox['bearing'] = bearing 
-    df = get_info_near(lon, lat, 100, max_results=5000, max_shown=1000, category=category)
+    df = redis_connector.get_info_near(lon, lat, 1000, max_results=3000, max_shown=3000, category=category)
     figure['data'] = [go.Scattermapbox(lon=df['longitude'], lat=df['latitude'], text=df['label'],
-                                       name='nearby_business', marker=dict(size=4, color=df['ratio'], colorscale='Jet',
+                                       name='nearby_business', marker=dict(size=df['size'], color=df['ratio'],
+                                       colorscale='Jet', colorbar={'tickvals':[0.03,0.5,0.97], 'ticktext':['Empty', 'Great!', 'Crowded']},
                                        showscale=True, cmax=1.0, cmin=0.0)
                       )]
     return figure
@@ -160,7 +170,7 @@ def update_points(relayoutData, n_intervals, category, figure):
     )
 def update_category_dropdown(n_intervals):
     return [{'label': key, 'value': value}
-            for key, value in sorted(get_categories().items())]
+            for key, value in sorted(redis_connector.get_categories().items())]
 
 
 @app.callback(
@@ -211,5 +221,59 @@ def resume_source(n_clicks):
     return 'Input source resumed'
 
 
+@app.callback(
+    Output('realtime-div', 'children'),
+    [Input('update-ticker', 'n_intervals')]
+    )
+def update_realtime(n_intervals):
+    if redis_connector.connected:
+        return str(datetime.datetime.fromtimestamp(redis_connector.timestamp))
+    else:
+        return 'No Redis connection.'
+
+
+@app.callback(
+    Output('interval-count', 'children'),
+    [Input('update-ticker', 'n_intervals')],
+    [State('multiplicity-input', 'value'), State('partitions-input', 'value'),
+        State('ingestion-rate-input', 'value')]
+    )
+def update_interval_count(n_intervals, mult, part, rate):
+    if n_intervals == 1:
+        source_controller.set_partition(part)
+        source_controller.set_multiplicity(mult)
+        source_controller.set_max_rate(rate)
+    return str(n_intervals)
+
+@app.callback(
+    Output('pulsar-connected', 'children'),
+    [Input('update-ticker', 'n_intervals')]
+    )
+def update_connected(n_intervals):
+    if latency_tracker.connected: 
+        return 'Pulsar metrics topic connected' 
+    else:
+        return 'Cannot connect to Pulsar. Stream is likely turned off.'
+
+@app.callback(
+    Output('pulsar-connected', 'style'),
+    [Input('update-ticker', 'n_intervals')],
+    [State('pulsar-connected', 'style')]
+    )
+def update_connected_style(n_intervals, style):
+    if latency_tracker.connected:
+        style['color'] = 'green'
+    else:
+        style['color'] = 'red'
+    return style
+
+
+
+@app.server.route('/style.css')
+def serve_css():
+    return flask.send_file('/home/ec2-user/project/dash_app/style.css')
+
+
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8080, host='0.0.0.0')
+
+    app.run_server(port=8080, host='0.0.0.0', ssl_context='adhoc')

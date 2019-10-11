@@ -31,7 +31,15 @@ class LatencyTracker(object):
         if name is None:
             name = str(uuid.uuid4())
         self.name = name
-        self.consumer = self.client.subscribe(topic, subscription_name=name)
+
+        # Try to connect to pulsar for metric updates
+        try:
+            self.consumer = self.client.subscribe(topic, subscription_name=name)
+            self.connected = True
+        except Exception as e:
+            self.connected = False
+            logger.warn('Cannot establish connecto to Pulsar.', exc_info=True)
+
         self.cooldown = cooldown
         self.tip = -1e5
         self.time = defaultdict(list)
@@ -42,10 +50,13 @@ class LatencyTracker(object):
         self.last_count = {}
         self.last_timestamp = {}
         self.last_eventtime = {}
+        self.real_time = 0
 
     def update(self, timeout=20, memory=5):
         # First check if it is time to refresh yet. 
         # No redundant updates within the specified cooldown period.
+        if not self.connected:
+            return
         t_now = time.time()
         if t_now <= self.tip:
             return
@@ -59,6 +70,7 @@ class LatencyTracker(object):
             data = message.value()
             if isinstance(data, bytes):
                 data = data.decode()
+            self.real_time = message.event_timestamp() * 1e-3
             name, counter, event_time, t = data.split(':')
             counter = int(counter)
             event_time = float(event_time)
@@ -66,9 +78,9 @@ class LatencyTracker(object):
             # Compute latency and message rate if it is not the first message
             if name in self.last_count:
                 rate = (counter - self.last_count[name]) / (t - self.last_timestamp[name]) / 1000 
-                ing_rate = (counter - self.last_count[name]) / (t - self.last_eventtime[name]) / 1000 
+                ing_rate = (counter - self.last_count[name]) / (event_time - self.last_eventtime[name]) / 1000 
                 latency = (t - event_time)*1000
-                print(data, rate, latency)
+                print(data, rate, latency, self.real_time)
                 self.time[name].append(t)
                 self.event_time[name].append(event_time)
                 self.latency[name].append(latency)
@@ -110,14 +122,32 @@ class SourceController(object):
         """
         self.control_topic = control_topic
         self.client = pulsar.Client(broker)
-        self.producer = self.client.create_producer(control_topic, schema=pulsar.schema.StringSchema(),
-                              block_if_queue_full=True)
+        self.connect()
+
+    def connect(self):
+        """Try to connect the producer"""
+        # First close any existing producer if already connected
+        if hasattr(self, 'producer') and getattr(self, 'connected', False) == True:
+            try:
+                self.producer.close()
+            except Exception:
+                pass
+        # Create the producer
+        try:
+            self.producer = self.client.create_producer(control_topic, schema=pulsar.schema.StringSchema(),
+                                      block_if_queue_full=True)
+            self.connect = True
+        except Exception as e:
+            logger.warn('Cannot connect a producer to publish commands')
+            self.connected = False
 
     def pause(self):
-        self.producer.send("STAT:PAUSE")
+        if self.connected:
+            self.producer.send("STAT:PAUSE")
 
     def resume(self):
-        self.producer.send("STAT:RESUME")
+        if self.connected:
+            self.producer.send("STAT:RESUME")
 
     def set_max_rate(self, rate=100):
         """Change the maximum publication rate in message per second"""
@@ -125,7 +155,8 @@ class SourceController(object):
             raise TypeError('rate must be an integer')
         if rate <= 0:
             raise ValueError('rate must be positive')
-        self.producer.send("RATE:"+str(rate))
+        if self.connected:
+            self.producer.send("RATE:"+str(rate))
 
     def set_partition(self, partition=0):
         """Change the number of partitions"""
@@ -133,7 +164,8 @@ class SourceController(object):
             raise TypeError('partition must be an integer')
         if partition <= 0:
             raise ValueError('partition must be positive')
-        self.producer.send("PART:"+str(partition))
+        if self.connected:
+            self.producer.send("PART:"+str(partition))
 
     def set_multiplicity(self, multiplicity=1):
         """Change the multiplicity factor of the producer.  Every message will be
@@ -142,4 +174,5 @@ class SourceController(object):
             raise TypeError('multiplicity must be an integer')
         if multiplicity <= 0:
             raise ValueError('multiplicity must be positive')
-        self.producer.send("MULT:"+str(multiplicity))
+        if self.connected:
+            self.producer.send("MULT:"+str(multiplicity))
