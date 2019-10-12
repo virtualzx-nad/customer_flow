@@ -4,7 +4,7 @@ name:    printer-wratio
 max_records:   500
 schema:
     business_id:        String
-    crowd_ratio:         Float 
+    crowd_ratio:        Float 
     date:               String
     max_count:          Integer
 

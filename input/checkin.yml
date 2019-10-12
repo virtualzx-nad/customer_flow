@@ -7,9 +7,5 @@ schema:
     business_id:  String
     date:         String
     timestamp:    Double 
-partitions:       3
-key_by:           business_id
-multiplicity:     1
-max_rate:         3000
 request_topic:    checkin_controller
 start_position:   0 

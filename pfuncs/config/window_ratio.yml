@@ -5,7 +5,7 @@ userConfig:
         date_field:             date
         date_format:            '%Y-%m-%d %H:%M:%S'
 
-        window:                 1.0e+9
+        window:                 3.154e+8
 
         timestamp:              timestamp
         metric_period:          2000

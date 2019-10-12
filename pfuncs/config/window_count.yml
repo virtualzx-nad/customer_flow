@@ -4,7 +4,7 @@ userConfig:
         date_field:        date
         date_format:       '%Y-%m-%d %H:%M:%S'
 
-        window:            7.9e+6 
+        window:            2.63e+6
 
         schema:
             date:          String
