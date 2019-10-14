@@ -10,6 +10,13 @@ from pipeline_utils import SchemaFunction
 
 class RedisConnector(SchemaFunction):
     """a sorted list for each key is stored on redis"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.redis = None
+        self.port = None
+        self.host = None
+        self.db = db
+
     def kernel(self, data, context, key_by, value_field, prefix='', group_by=None,
                host='10.0.0.24', port=6379, db=1):
         """Persist data to Redis
@@ -27,7 +34,9 @@ class RedisConnector(SchemaFunction):
             port:       Port for the Redis server
             db:         Redis database index"""
         # Create redis connection
-        redis = Redis(host, port=port, db=db)
+        if self.redis is None or (host, port, db) != (self.host, self.port, self.db):
+            self.redis = Redis(host, port=port, db=db)
+        redis = self.redis
 
         # Retrieve the `key` and `value` of the current input
         key = data[key_by] 
