@@ -31,4 +31,4 @@ name:   store-business-geoindex
 inputs: [business_yelp]
 output: business_geospatial_info 
 className: geoindex.StoreGeoIndex 
-py:  /home/ec2-user/project/pfuncs/geoindex.py
+py:  /home/ec2-user/project/pulsar_functions/geoindex.py
