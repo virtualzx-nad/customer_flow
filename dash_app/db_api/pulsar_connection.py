@@ -134,11 +134,11 @@ class SourceController(object):
                 pass
         # Create the producer
         try:
-            self.producer = self.client.create_producer(control_topic, schema=pulsar.schema.StringSchema(),
+            self.producer = self.client.create_producer(self.control_topic, schema=pulsar.schema.StringSchema(),
                                       block_if_queue_full=True)
-            self.connect = True
+            self.connected = True
         except Exception as e:
-            logger.warn('Cannot connect a producer to publish commands')
+            logger.warn('Cannot connect a producer to publish commands ' + str(e))
             self.connected = False
 
     def pause(self):

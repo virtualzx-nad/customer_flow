@@ -16,12 +16,12 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
                         html.Div([
                             html.Div('  Real Time  ', style={'display': 'inline-block', 'margin': 12}),
                             html.Div('', id='realtime-div', style={'display': 'inline-block', 'margin': 12}),
-                        ], style={'margin': 8})
+                            ], style={'margin': 8})
                     ]),
                     html.Div(style={'width': '40%', 'display': 'table-cell', 'margin': 20}, children=[
-                        'Color of the markers shows the current number of visitors compared to recent records. '
-                        'Red indicates high number of visitors close to the maximum capacity, and blue unusually low numbers.'
-                        'Green indicate a place that is usually crowded but less crowded today.'
+                        'Colors show the current number of visitors compared to recent records. '
+                        'Red indicates high numbers close to the maximum capacity, and blue the opposite.'
+                        'Green indicate a place that is usually crowded but less so today.'
                         'Size of the markers indicate the popularity of an establishment, i.e. maximum number of visitors '
                         'in recent months.'
                         ]),
@@ -113,7 +113,7 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
                         html.Div('Processing Control',style={'width':'30%', 'display': 'inline-block'}),
                         html.Div(
                             daq.NumericInput(id='partitions-input',
-                                value=3, min=1, max=5,
+                                value=6, min=1, max=10,
                                 label='Parallelism',
                                 size=150,
                             ),
@@ -130,7 +130,7 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
                     ], id='empty-div', style={'display': 'none'}),
                     dcc.Interval(
                             id="update-ticker",
-                            interval=10000,
+                            interval=2000,
                             n_intervals=0,
                         ),
                     html.Div('', id='interval-count', style={'display':'none'}),
