@@ -259,9 +259,16 @@ def process_file(s3object, schema, broker='pulsar://localhost:6650', topic='test
         if handler.dropped:
             logger.info('Number of dropped messaged: %d', handler.dropped)
             logger.info('Last error result:          %s', handler.result)
+        success = True
+    except Exception:
+        logger.info('An exception occured and registered.', exc_info=True)
+        success = False
     finally:
         logger.info('Exit position: %d', position)
         client.close()
+    if success:
+        return -1
+    return position
 
 
 if __name__ == '__main__':
@@ -274,5 +281,20 @@ if __name__ == '__main__':
     if not isinstance(settings, dict):
         raise RuntimeError('Invalid settings file.')
     logging.basicConfig(level=settings.pop('logging_level', 'INFO'))
+    # Track current position in the S3 bucket and try to re-establish connection
+    # when connection fails.
+    start = settings.pop('start_position', 0)
+    pulse = 1.0     # Exponential backup on S3 connection
+    while True: 
+        new_start = process_file(start_position=start, **settings)
+        if new_start == -1:
+            logger.info('All entries successfully processed')
+            break
+        if new_start == start:
+            pulse *= 2
+        else:
+            pulse = 1.0
+        logger.info('Pausing %7.1g seconds.  Will retry if an error occured.', pulse)
+        time.sleep(pulse)
+        start = new_start
 
-    process_file(**settings)

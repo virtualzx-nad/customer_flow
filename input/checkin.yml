@@ -9,3 +9,7 @@ schema:
     timestamp:    Double 
 request_topic:    checkin_controller
 start_position:   0 
+multiplicity:     1
+max_rate:         3000
+partitions:       6
+key_by:           business_id

@@ -5,7 +5,7 @@ Install uitilities in Xiaolei Zhu's Insight DE project.
 from setuptools import setup
 
 __title__ = "pipeline_utils"
-__version__ = "0.0.2"
+__version__ = "0.0.4"
 __status__ = "Prototype"
 
 
