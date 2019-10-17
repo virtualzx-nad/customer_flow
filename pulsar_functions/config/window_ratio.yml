@@ -1,0 +1,33 @@
+userConfig:
+        key_by:                 business_id
+        value_field:            count
+
+        date_field:             date
+        date_format:            '%Y-%m-%d %H:%M:%S'
+
+        window:                 3.154e7 
+
+        timestamp:              timestamp
+        metric_period:          2000
+        metric_topic:           'metric:window_ratio'
+
+        schema:
+            date:               String
+            business_id:        String
+            count:              Integer
+            timestamp:          Double
+
+        output_field:           crowd_ratio 
+        output_schema:
+            business_id:        String
+            crowd_ratio:        Float 
+            max_count:          Integer
+            date:               String
+
+tenant: public
+namespace: default
+name: window-ratio-INDEX
+inputs: [checkin_window_count-INDEX]
+output:  checkin_crowd_ratio-INDEX
+className: window_ratio.WindowRatio
+py:  /home/ec2-user/project/pfuncs/window_ratio.py

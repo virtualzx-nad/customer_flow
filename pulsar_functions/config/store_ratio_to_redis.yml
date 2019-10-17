@@ -1,0 +1,18 @@
+userConfig:
+        key_by:                 business_id
+        value_field:            [crowd_ratio, date, max_count]
+
+        schema:
+            business_id:        String
+            crowd_ratio:        Float 
+            max_count:          Integer
+            date:               String
+        prefix:                 crowd_ratio
+
+tenant: public
+namespace: default
+name: store-ratio-redis
+inputs: [checkin_crowd_ratio, checkin_crowd_ratio-0, checkin_crowd_ratio-1, checkin_crowd_ratio-2, checkin_crowd_ratio-3, checkin_crowd_ratio-4, checkin_crowd_ratio-5,checkin_crowd_ratio-6, checkin_crowd_ratio-7, checkin_crowd_ratio-8, checkin_crowd_ratio-9]
+output:
+className: redis_connector.RedisConnector 
+py:  /home/ec2-user/project/pfuncs/redis_connector.py

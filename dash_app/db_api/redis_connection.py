@@ -1,5 +1,6 @@
 """Handles connection with the Redis server"""
 import os
+import logging
 from ast import literal_eval
 from random import sample
 import math
@@ -8,6 +9,9 @@ from datetime import datetime
 
 import pandas as pd
 import redis
+
+
+logger = logging.getLogger(__name__)
 
 
 class RedisConnector(object):
@@ -71,12 +75,15 @@ class RedisConnector(object):
                 continue
             ratio = float(ratio)
             stamp = datetime.strptime(stamp , '%Y-%m-%d %H:%M:%S').timestamp()
-            self.timestamp = max(self.timestamp, stamp)
+            if abs(self.timestamp - stamp) < 60:
+                self.timestamp = max(self.timestamp, stamp)
+            else:
+                self.timestamp = stamp
             longitudes.append(lon)
             latitudes.append(lat)
             ratios.append(ratio)
             labels.append('{}\n{:.2f}% of {}'.format(name, ratio*100, max_count))
-            sizes.append(5+math.sqrt(float(max_count))/2)
+            sizes.append(2+math.sqrt(float(max_count)))
         t2=time.time()
         df = pd.DataFrame({'label': labels, 'latitude':latitudes, 'longitude':longitudes, 'ratio':ratios, 'size': sizes})
         t3=time.time()

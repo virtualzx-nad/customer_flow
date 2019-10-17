@@ -13,7 +13,7 @@ from db_api.pulsar_connection import LatencyTracker, SourceController
 from layout import get_layout 
 
 
-external_stylesheets = ['/style.css']
+external_stylesheets = ['static/style.css']
 
 # initial coordinates for the map
 lat0, lon0 = 36.107, -115.168 
@@ -29,6 +29,7 @@ redis_connector = RedisConnector()
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = get_layout(lat0, lon0, zoom0, pitch0, bearing0)
+app.title = 'Skip-the-Line'
 
 server = app.server
 
@@ -155,8 +156,9 @@ def update_points(relayoutData, n_intervals, category, figure):
     mapbox['zoom'] = zoom 
     mapbox['pitch'] = pitch 
     mapbox['bearing'] = bearing 
-    df = redis_connector.get_info_near(lon, lat, 1000, max_results=3000, max_shown=3000, category=category)
-    figure['data'] = [go.Scattermapbox(lon=df['longitude'], lat=df['latitude'], text=df['label'],
+    df = redis_connector.get_info_near(lon, lat, 1000, max_results=2000, max_shown=2000, category=category)
+    if df is not None:
+        figure['data'] = [go.Scattermapbox(lon=df['longitude'], lat=df['latitude'], text=df['label'],
                                        name='nearby_business', marker=dict(size=df['size'], color=df['ratio'],
                                        colorscale='Jet', colorbar={'tickvals':[0.03,0.5,0.97], 'ticktext':['Empty', 'Great!', 'Crowded']},
                                        showscale=True, cmax=1.0, cmin=0.0)
@@ -268,12 +270,20 @@ def update_connected_style(n_intervals, style):
     return style
 
 
+STATIC_PATH = '/home/ubuntu/project/dash_app/static/' 
 
-@app.server.route('/style.css')
-def serve_css():
-    return flask.send_file('/home/ec2-user/project/dash_app/style.css')
+@app.server.route('/static/<resource>')
+def serve_static(resource):
+    return flask.send_from_directory(STATIC_PATH, resource)
 
+@app.server.route('/static/.well-known/<resource>')
+def serve_static_known(resource):
+    return flask.send_from_directory(STATIC_PATH + '/.well-known/', resource)
+
+
+@app.server.route('/static/.well-known/acme-challenge/<resource>')
+def serve_static_challenge(resource):
+    return flask.send_from_directory(STATIC_PATH + '/.well-known/acme-challenge/', resource)
 
 if __name__ == '__main__':
-
-    app.run_server(port=8080, host='0.0.0.0', ssl_context='adhoc')
+    app.run_server(port=443, host='0.0.0.0', ssl_context=('/etc/letsencrypt/live/zettascale.me/fullchain.pem', '/etc/letsencrypt/live/zettascale.me/privkey.pem'))
