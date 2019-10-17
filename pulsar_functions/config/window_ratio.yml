@@ -5,7 +5,7 @@ userConfig:
         date_field:             date
         date_format:            '%Y-%m-%d %H:%M:%S'
 
-        window:                 3.154e7 
+        window:                 7.884e+6 
 
         timestamp:              timestamp
         metric_period:          2000
@@ -30,4 +30,4 @@ name: window-ratio-INDEX
 inputs: [checkin_window_count-INDEX]
 output:  checkin_crowd_ratio-INDEX
 className: window_ratio.WindowRatio
-py:  /home/ec2-user/project/pfuncs/window_ratio.py
+py:  /home/ec2-user/project/pulsar_functions/window_ratio.py
