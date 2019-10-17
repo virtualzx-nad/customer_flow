@@ -14,9 +14,10 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
                         html.H2('  Avoid-the-Line', style={'margin': 8}),
                         html.Div('  Global realtime monitor of busy businesses', style={'margin': 8}),
                         html.Div([
-                            html.Div('  Real Time  ', style={'display': 'inline-block', 'margin': 12}),
-                            html.Div('', id='realtime-div', style={'display': 'inline-block', 'margin': 12}),
-                            ], style={'margin': 8})
+                            html.Div('Tracking', style={'display': 'inline-block', 'margin': 6}),
+                            html.Div('', id='category-count-div', style={'display': 'inline-block', 'margin': 6}),
+                            html.Div('', id='category-name-div', style={'display': 'inline-block', 'margin': 6}),
+                            ], style={'margin': 4})
                     ]),
                     html.Div(style={'width': '40%', 'display': 'table-cell', 'margin': 20}, children=[
                         'Colors show the current number of visitors compared to recent records. '

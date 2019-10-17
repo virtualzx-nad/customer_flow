@@ -224,14 +224,22 @@ def resume_source(n_clicks):
 
 
 @app.callback(
-    Output('realtime-div', 'children'),
+    Output('category-name-div', 'children'),
     [Input('update-ticker', 'n_intervals')]
     )
-def update_realtime(n_intervals):
-    if redis_connector.connected:
-        return str(datetime.datetime.fromtimestamp(redis_connector.timestamp))
-    else:
-        return 'No Redis connection.'
+def update_category_name(n_intervals): 
+    if redis_connector.last_category is None:
+        return 'Loading'
+    return redis_connector.last_category
+
+@app.callback(
+    Output('category-count-div', 'children'),
+    [Input('update-ticker', 'n_intervals')]
+    )
+def update_category_name(n_intervals):
+    if redis_connector.last_category is None:
+        return '...'
+    return redis_connector.last_count
 
 
 @app.callback(
@@ -276,14 +284,5 @@ STATIC_PATH = '/home/ubuntu/project/dash_app/static/'
 def serve_static(resource):
     return flask.send_from_directory(STATIC_PATH, resource)
 
-@app.server.route('/static/.well-known/<resource>')
-def serve_static_known(resource):
-    return flask.send_from_directory(STATIC_PATH + '/.well-known/', resource)
-
-
-@app.server.route('/static/.well-known/acme-challenge/<resource>')
-def serve_static_challenge(resource):
-    return flask.send_from_directory(STATIC_PATH + '/.well-known/acme-challenge/', resource)
-
 if __name__ == '__main__':
-    app.run_server(port=443, host='0.0.0.0', ssl_context=('/etc/letsencrypt/live/zettascale.me/fullchain.pem', '/etc/letsencrypt/live/zettascale.me/privkey.pem'))
+     app.run_server(port=443, host='0.0.0.0', ssl_context=('/etc/letsencrypt/live/www.zettascale.me/fullchain.pem', '/etc/letsencrypt/live/www.zettascale.me/privkey.pem'))
