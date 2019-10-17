@@ -1,7 +1,7 @@
 ADMIN=/home/ec2-user/apache-pulsar-2.4.1/bin/pulsar-admin
 cwd=`pwd`
 
-for x in `seq 0 9`
+for x in `seq 0 11`
 do
   echo Initializing partition $x
  

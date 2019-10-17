@@ -1,5 +1,5 @@
 broker:  pulsar://10.0.0.16:6650
-topic:   checkin_window_count 
+topic:   checkin_window_count-0 
 name:    printer-wc
 max_records:   500
 schema:

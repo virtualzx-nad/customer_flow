@@ -46,7 +46,7 @@ class WindowCount(SchemaFunction):
         state.appendleft(stamp_last)
         while state:
             tail = state.pop()
-            if tail > stamp_start:
+            if tail > stamp_start and tail <= stamp_last:
                 state.append(tail)
                 break
         return {output_field: len(state)}

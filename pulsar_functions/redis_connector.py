@@ -1,6 +1,5 @@
 """A Pulsar connector to Redis"""
 import time
-from collections import defaultdict, deque
 from datetime import datetime, timedelta
 
 from redis import Redis
@@ -13,9 +12,9 @@ class RedisConnector(SchemaFunction):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.redis = None
-        self.port = None
-        self.host = None
-        self.db = db
+        self.redis_port = None
+        self.redis_host = None
+        self.redis_db = None
 
     def kernel(self, data, context, key_by, value_field, prefix='', group_by=None,
                host='10.0.0.24', port=6379, db=1):
@@ -34,8 +33,11 @@ class RedisConnector(SchemaFunction):
             port:       Port for the Redis server
             db:         Redis database index"""
         # Create redis connection
-        if self.redis is None or (host, port, db) != (self.host, self.port, self.db):
+        if self.redis is None or (host, port, db) != (self.redis_host, self.redis_port, self.redis_db):
             self.redis = Redis(host, port=port, db=db)
+            self.redis_host = host
+            self.redis_port = port
+            self.redis_db = db
         redis = self.redis
 
         # Retrieve the `key` and `value` of the current input

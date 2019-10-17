@@ -16,3 +16,4 @@ inputs: [checkin_crowd_ratio, checkin_crowd_ratio-0, checkin_crowd_ratio-1, chec
 output:
 className: redis_connector.RedisConnector 
 py:  /home/ec2-user/project/pulsar_functions/redis_connector.py
+parallelism:  4

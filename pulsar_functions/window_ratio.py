@@ -50,7 +50,7 @@ class WindowRatio(SchemaFunction):
         value_tail = value
         while state:
             t_tail, value_tail = state.pop()
-            if t_tail > stamp_start:
+            if t_tail > stamp_start and t_tail <= stamp_last:
                 state.append((t_tail, value_tail))
                 break
 

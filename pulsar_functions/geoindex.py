@@ -7,6 +7,13 @@ from redis import Redis
 
 class StoreGeoIndex(SchemaFunction):
     """Pulsar function for storing geospatial information to redis"""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.redis = None
+        self.redis_port = None
+        self.redis_host = None
+        self.redis_db = None
+
     def kernel(self, data, context, key_fields,
                latitude_field='latitude', longitude_field='longitude',
                group_by='__all__', group_catalog=None,
@@ -41,7 +48,13 @@ class StoreGeoIndex(SchemaFunction):
             groups = ['geo:' + name for name in group_names] 
 
         # Connect to redis server
-        redis = Redis(redis_server, port=redis_port, db=redis_id)
+        if self.redis is None or (redis_server, redis_port, redis_id) != (self.redis_server, self.redis_port, self.redis_db):
+            self.redis = redis = Redis(redis_server, port=redis_port, db=redis_id)
+            self.redis_server = redis_server
+            self.redis_port = redis_port
+            self.redis_db = redis_id
+        else:
+            redis = self.redis
 
         # If `group_catalog` option is specified, store the catalog of all existing categories
         # in this field on redis 
