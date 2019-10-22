@@ -51,6 +51,8 @@ class LatencyTracker(object):
         self.last_timestamp = {}
         self.last_eventtime = {}
         self.real_time = 0
+        self.peak_throughput=None
+        self.average_latency=None
 
     def update(self, timeout=20, memory=5):
         # First check if it is time to refresh yet. 
@@ -105,8 +107,14 @@ class LatencyTracker(object):
         latency /= n
         self.time['all'].append(t_now)
         self.rate['all'].append(rate)
+        if self.rate['all']:
+            self.peak_throughput = max(self.rate['all'][-10:])
+
         self.ingestion_rate['all'].append(inrate)
         self.latency['all'].append(latency)
+        l = min(len(self.latency['all']), 10)
+        if l: 
+            self.average_latency = sum(self.latency['all'][-10:]) / l 
 
 
 class SourceController(object):
@@ -144,6 +152,10 @@ class SourceController(object):
     def pause(self):
         if self.connected:
             self.producer.send("STAT:PAUSE")
+
+    def stop(self):
+        if self.connected:
+            self.producer.send("STAT:STOP")
 
     def resume(self):
         if self.connected:

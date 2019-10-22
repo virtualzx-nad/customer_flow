@@ -14,9 +14,10 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
                         html.H2('  Avoid-the-Line', style={'margin': 8}),
                         html.Div('  Global realtime monitor of busy businesses', style={'margin': 8}),
                         html.Div([
-                            html.Div('  Real Time  ', style={'display': 'inline-block', 'margin': 12}),
-                            html.Div('', id='realtime-div', style={'display': 'inline-block', 'margin': 12}),
-                            ], style={'margin': 8})
+                            html.Div('Tracking', style={'display': 'inline-block', 'margin': 6}),
+                            html.Div('', id='category-count-div', style={'display': 'inline-block', 'margin': 6}),
+                            html.Div('', id='category-name-div', style={'display': 'inline-block', 'margin': 6}),
+                            ], style={'margin': 4})
                     ]),
                     html.Div(style={'width': '40%', 'display': 'table-cell', 'margin': 20}, children=[
                         'Colors show the current number of visitors compared to recent records. '
@@ -83,14 +84,14 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
                          dcc.Graph(id='latency-graph')
                     ),
                     html.Div([
-                        html.Div('Ingestion Control',style={'width':'14%', 'display': 'inline-block'}),
+                        html.Div('Ingestion Control',style={'width':'10%', 'display': 'inline-block'}),
                         html.Div(
                             daq.NumericInput(id='multiplicity-input',
                                 value=1, min=1, max=10000,
                                 label='multiplicity',
                                 size=60,
                             ),              
-                            style={'width':'13%', 'display': 'inline-block'}
+                            style={'width':'10%', 'display': 'inline-block'}
                         ),
                         html.Div(
                             daq.NumericInput(id='ingestion-rate-input',
@@ -98,22 +99,26 @@ def get_layout(lat0, lon0, zoom0, pitch0, bearing0):
                                 label='ingestion rate',
                                 size=110,
                             ),
-                            style={'width':'23%', 'display': 'inline-block'}
+                            style={'width':'20%', 'display': 'inline-block'}
                         ),
                         html.Div(
                             html.Button('Resume', id='resume-button', style={'width': '70'}),
-                            style={'width':'23%', 'display': 'inline-block'}
+                            style={'width':'20%', 'display': 'inline-block'}
                         ),
                         html.Div(
                             html.Button('Pause', id='pause-button', style={'width': '70'}),
-                            style={'width':'23%', 'display': 'inline-block'}
+                            style={'width':'20%', 'display': 'inline-block'}
+                        ),
+                        html.Div(
+                            html.Button('Restart Stream', id='restart-button', style={'background-color': 'tomato','color':'white', 'width': '120'}),
+                            style={'width':'20%', 'display': 'inline-block'}
                         ),
                     ]),
                     html.Div([
                         html.Div('Processing Control',style={'width':'30%', 'display': 'inline-block'}),
                         html.Div(
                             daq.NumericInput(id='partitions-input',
-                                value=6, min=1, max=10,
+                                value=6, min=1, max=12,
                                 label='Parallelism',
                                 size=150,
                             ),

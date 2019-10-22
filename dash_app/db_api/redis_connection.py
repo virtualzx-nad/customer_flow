@@ -18,6 +18,8 @@ class RedisConnector(object):
     """Handles connection to redis"""
     def __init__(self, host=None, port=None, db=None):
         self.connect(host, port, db)
+        self.last_category = None
+        self.last_count = 0
 
     def connect(self, host=None, port=None, db=None):
         """Connect to redis"""
@@ -54,6 +56,8 @@ class RedisConnector(object):
             return None
         t0 = time.time()
         cutoff = self.timestamp - 1e8
+        self.last_category = category.split(':')[-1]
+        self.last_count = self.client.zcard(category)
         nearby = self.client.georadius(category, longitude, latitude, radius,
                                  count=max_results,
                                  unit=unit, withcoord=True)

@@ -210,7 +210,8 @@ def update_partitions(partitions):
     [Input('pause-button', 'n_clicks')]
     )
 def pause_source(n_clicks):
-    source_controller.pause()
+    if n_clicks:
+        source_controller.pause()
     return 'Input source paused.'
 
 
@@ -219,19 +220,37 @@ def pause_source(n_clicks):
     [Input('resume-button', 'n_clicks')]
     )
 def resume_source(n_clicks):
-    source_controller.resume()
+    if n_clicks:
+        source_controller.resume()
     return 'Input source resumed'
 
 
 @app.callback(
-    Output('realtime-div', 'children'),
+    Output('empty-div6', 'children'),
+    [Input('restart-button', 'n_clicks')]
+    )
+def restart_source(n_clicks):
+    if n_clicks:
+        source_controller.stop()
+    return 'Input source terminated.'
+
+@app.callback(
+    Output('category-name-div', 'children'),
     [Input('update-ticker', 'n_intervals')]
     )
-def update_realtime(n_intervals):
-    if redis_connector.connected:
-        return str(datetime.datetime.fromtimestamp(redis_connector.timestamp))
-    else:
-        return 'No Redis connection.'
+def update_category_name(n_intervals): 
+    if redis_connector.last_category is None:
+        return 'Loading'
+    return redis_connector.last_category
+
+@app.callback(
+    Output('category-count-div', 'children'),
+    [Input('update-ticker', 'n_intervals')]
+    )
+def update_category_name(n_intervals):
+    if redis_connector.last_category is None:
+        return '...'
+    return redis_connector.last_count
 
 
 @app.callback(
@@ -253,7 +272,13 @@ def update_interval_count(n_intervals, mult, part, rate):
     )
 def update_connected(n_intervals):
     if latency_tracker.connected: 
-        return 'Pulsar metrics topic connected' 
+        throughput = latency_tracker.peak_throughput
+        latency = latency_tracker.average_latency
+        if throughput is None or latency is None:
+            tag = 'Throughput / latency currently unavailable'
+        else:
+            tag = 'Throughput {:.2f} k events/s.  Latency {:.1f}ms'.format(throughput, latency)
+        return 'Receiving metrics from Pulsar. ' + tag 
     else:
         return 'Cannot connect to Pulsar. Stream is likely turned off.'
 
@@ -276,14 +301,5 @@ STATIC_PATH = '/home/ubuntu/project/dash_app/static/'
 def serve_static(resource):
     return flask.send_from_directory(STATIC_PATH, resource)
 
-@app.server.route('/static/.well-known/<resource>')
-def serve_static_known(resource):
-    return flask.send_from_directory(STATIC_PATH + '/.well-known/', resource)
-
-
-@app.server.route('/static/.well-known/acme-challenge/<resource>')
-def serve_static_challenge(resource):
-    return flask.send_from_directory(STATIC_PATH + '/.well-known/acme-challenge/', resource)
-
 if __name__ == '__main__':
-    app.run_server(port=443, host='0.0.0.0', ssl_context=('/etc/letsencrypt/live/zettascale.me/fullchain.pem', '/etc/letsencrypt/live/zettascale.me/privkey.pem'))
+     app.run_server(port=443, host='0.0.0.0', ssl_context=('/etc/letsencrypt/live/www.zettascale.me/fullchain.pem', '/etc/letsencrypt/live/www.zettascale.me/privkey.pem'))
